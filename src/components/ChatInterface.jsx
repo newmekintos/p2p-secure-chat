@@ -12,6 +12,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [onlineContacts, setOnlineContacts] = useState(new Set());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [typingPeers, setTypingPeers] = useState(new Map());
 
   useEffect(() => {
     const initConnections = async () => {

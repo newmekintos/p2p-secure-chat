@@ -16,19 +16,10 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
     // Mesajları yükle
     loadMessages();
 
-    // Typing durumunu dinle
-    const handleTyping = (data) => {
-      if (data.type === 'typing' && data.from === contact.peerId) {
-        setIsTyping(data.typing);
-      }
-    };
-
-    p2pManager.onMessage(handleTyping);
-
-    // Mesajları periyodik olarak yenile (yeni mesaj geldiğinde görmek için)
+    // Mesajları her 500ms'de bir yenile (daha hızlı)
     const messageInterval = setInterval(() => {
       loadMessages();
-    }, 1000);
+    }, 500);
 
     return () => {
       clearInterval(messageInterval);

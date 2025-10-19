@@ -24,6 +24,16 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
       setIsScanning(true);
       setError('');
       
+      // Önce kamera izni iste
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop()); // Test için hemen kapat
+      } catch (permErr) {
+        setError('Kamera izni gerekli! Lütfen izin verin.');
+        setIsScanning(false);
+        return;
+      }
+      
       const html5QrCode = new Html5Qrcode(scannerDivId);
       qrScannerRef.current = html5QrCode;
 
@@ -35,6 +45,7 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
         },
         (decodedText) => {
           // QR kod okundu
+          console.log('QR kod tarandı:', decodedText);
           setPeerId(decodedText);
           stopQRScanner();
         },
@@ -43,6 +54,7 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
         }
       );
     } catch (err) {
+      console.error('QR Scanner hatası:', err);
       setError('Kamera erişimi reddedildi veya bulunamadı');
       setIsScanning(false);
     }
