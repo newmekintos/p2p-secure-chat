@@ -59,9 +59,18 @@ export class P2PManager {
 
         this.peer.on('error', (err) => {
           clearTimeout(timeout);
-          console.error('Peer error:', err);
-          this.onStatusCallback?.('error', err.message);
-          reject(err);
+          // "Could not connect" hatasını daha soft göster
+          if (err.type === 'peer-unavailable') {
+            console.log('ℹ️ Peer şu anda mevcut değil:', err.message);
+          } else {
+            console.error('Peer error:', err);
+            this.onStatusCallback?.('error', err.message);
+          }
+          
+          // Sadece initialization hatalarında reject et
+          if (!this.peerId) {
+            reject(err);
+          }
         });
 
         this.peer.on('disconnected', () => {

@@ -8,13 +8,15 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
   const [error, setError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const qrScannerRef = useRef(null);
+  const nameInputRef = useRef(null);
   const scannerDivId = 'qr-reader';
 
   useEffect(() => {
     return () => {
       // Cleanup: scanner'ı durdur
       if (qrScannerRef.current) {
-        qrScannerRef.current.stop().catch(err => console.error(err));
+        qrScannerRef.current.stop()
+          .catch(err => console.log('Cleanup: Scanner zaten durdurulmuş'));
       }
     };
   }, []);
@@ -47,7 +49,28 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
           // QR kod okundu
           console.log('QR kod tarandı:', decodedText);
           setPeerId(decodedText);
-          stopQRScanner();
+          // Scanner'ı durdur
+          if (qrScannerRef.current) {
+            qrScannerRef.current.stop()
+              .then(() => {
+                console.log('Scanner başarıyla durduruldu');
+                qrScannerRef.current = null;
+                setIsScanning(false);
+                // İsim alanına focus et
+                setTimeout(() => {
+                  nameInputRef.current?.focus();
+                }, 100);
+              })
+              .catch(err => {
+                console.log('Scanner durdurulamadı (zaten durmuş olabilir)');
+                qrScannerRef.current = null;
+                setIsScanning(false);
+                // İsim alanına focus et
+                setTimeout(() => {
+                  nameInputRef.current?.focus();
+                }, 100);
+              });
+          }
         },
         (errorMessage) => {
           // Okuma hatası (normal, sürekli tarama yapıyor)
@@ -64,9 +87,15 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
     if (qrScannerRef.current) {
       qrScannerRef.current.stop()
         .then(() => {
+          console.log('QR Scanner durduruldu');
           setIsScanning(false);
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.log('QR Scanner zaten durdurulmuş');
+          setIsScanning(false);
+        });
+    } else {
+      setIsScanning(false);
     }
   };
 
@@ -124,6 +153,7 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
               İsim
             </label>
             <input
+              ref={nameInputRef}
               type="text"
               id="name"
               value={name}

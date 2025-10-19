@@ -113,11 +113,13 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     await loadContacts();
     setShowAddContact(false);
     
-    // Otomatik bağlan
+    // Otomatik bağlan (hata görmezden gel - karşı taraf çevrimdışı olabilir)
     try {
       await p2pManager.connectToPeer(contact.peerId);
+      console.log('✅ Kişiye bağlanma denemesi yapıldı:', contact.peerId);
     } catch (error) {
-      console.error('Connection error:', error);
+      console.log('ℹ️ Şu anda bağlanılamadı (karşı taraf çevrimdışı olabilir):', error.message);
+      // Hata görmezden gel - karşı taraf çevrimiçi olunca otomatik bağlanacak
     }
   };
 
