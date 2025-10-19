@@ -11,16 +11,57 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [onlineContacts, setOnlineContacts] = useState(new Set());
 
   useEffect(() => {
-    loadContacts();
+    const initConnections = async () => {
+      await loadContacts();
+      
+      // Tüm kayıtlı kişilere otomatik bağlan
+      const savedContacts = await storage.getAllContacts();
+      savedContacts.forEach(contact => {
+        try {
+          p2pManager.connectToPeer(contact.peerId);
+        } catch (error) {
+          console.error('Auto-connect error:', error);
+        }
+      });
+    };
+
+    initConnections();
+
+    // GLOBAL mesaj dinleyicisi - TÜM gelen mesajları yakala
+    p2pManager.onMessage(async (data) => {
+      if (data.type === 'typing') {
+        // Typing event'i ChatWindow'da handle edilir
+        return;
+      }
+
+      if (data.message && data.from) {
+        console.log('Mesaj alındı:', data.from, data.message);
+        
+        // Mesajı kaydet
+        const newMessage = {
+          peerId: data.from,
+          message: data.message,
+          timestamp: data.timestamp,
+          isSent: false
+        };
+
+        await storage.saveMessage(newMessage);
+        
+        // Eğer bu kişi seçili ise UI'ı güncelle
+        // ChatWindow kendi mesajlarını reload edecek
+      }
+    });
 
     // Bağlantı event'lerini dinle
     p2pManager.onConnection((data) => {
       if (data.connected) {
+        console.log('Peer connected:', data.peerId);
         setOnlineContacts(prev => new Set([...prev, data.peerId]));
       }
     });
 
     p2pManager.onDisconnection((peerId) => {
+      console.log('Peer disconnected:', peerId);
       setOnlineContacts(prev => {
         const newSet = new Set(prev);
         newSet.delete(peerId);

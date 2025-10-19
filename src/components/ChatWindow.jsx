@@ -16,30 +16,22 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact })
     // Mesajları yükle
     loadMessages();
 
-    // Yeni mesajları dinle
-    const handleMessage = async (data) => {
+    // Typing durumunu dinle
+    const handleTyping = (data) => {
       if (data.type === 'typing' && data.from === contact.peerId) {
         setIsTyping(data.typing);
-        return;
-      }
-
-      if (data.from === contact.peerId) {
-        const newMessage = {
-          peerId: contact.peerId,
-          message: data.message,
-          timestamp: data.timestamp,
-          isSent: false
-        };
-
-        await storage.saveMessage(newMessage);
-        await loadMessages();
       }
     };
 
-    p2pManager.onMessage(handleMessage);
+    p2pManager.onMessage(handleTyping);
+
+    // Mesajları periyodik olarak yenile (yeni mesaj geldiğinde görmek için)
+    const messageInterval = setInterval(() => {
+      loadMessages();
+    }, 1000);
 
     return () => {
-      p2pManager.onMessage(null);
+      clearInterval(messageInterval);
     };
   }, [contact, p2pManager]);
 
