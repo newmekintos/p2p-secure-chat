@@ -32,13 +32,16 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
 
     // GLOBAL mesaj dinleyicisi - TÜM gelen mesajları yakala
     p2pManager.onMessage(async (data) => {
+      console.log('🎯 ChatInterface - Mesaj alındı:', data);
+      
       if (data.type === 'typing') {
         // Typing event'i ChatWindow'da handle edilir
+        console.log('⌨️ Typing event, ChatWindow\'a iletiliyor');
         return;
       }
 
       if (data.message && data.from) {
-        console.log('Mesaj alındı:', data.from, data.message);
+        console.log('💾 Mesaj kaydediliyor:', data.from, data.message);
         
         // Mesajı kaydet
         const newMessage = {
@@ -48,10 +51,17 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           isSent: false
         };
 
-        await storage.saveMessage(newMessage);
+        try {
+          await storage.saveMessage(newMessage);
+          console.log('✅ Mesaj storage\'a kaydedildi');
+        } catch (error) {
+          console.error('❌ Storage kayıt hatası:', error);
+        }
         
         // Eğer bu kişi seçili ise UI'ı güncelle
         // ChatWindow kendi mesajlarını reload edecek
+      } else {
+        console.warn('⚠️ Mesaj formatı hatalı:', data);
       }
     });
 

@@ -51,11 +51,23 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputMessage.trim() || !contact || !isOnline || isSending) return;
+    console.log('📤 ChatWindow - Mesaj gönderiliyor:', {
+      hasMessage: !!inputMessage.trim(),
+      hasContact: !!contact,
+      isOnline,
+      isSending
+    });
+    
+    if (!inputMessage.trim() || !contact || !isOnline || isSending) {
+      console.warn('⚠️ Mesaj gönderilemedi - koşullar sağlanmadı');
+      return;
+    }
 
     setIsSending(true);
     try {
+      console.log('📨 P2P Manager\'a mesaj gönderiliyor...');
       await p2pManager.sendMessage(contact.peerId, inputMessage.trim());
+      console.log('✅ Mesaj P2P üzerinden gönderildi');
 
       const newMessage = {
         peerId: contact.peerId,
@@ -64,15 +76,18 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
         isSent: true
       };
 
+      console.log('💾 Gönderilen mesaj storage\'a kaydediliyor...');
       await storage.saveMessage(newMessage);
+      console.log('✅ Mesaj storage\'a kaydedildi');
+      
       await loadMessages();
       setInputMessage('');
       
       // Yazıyor durumunu kapat
       p2pManager.sendTyping(contact.peerId, false);
     } catch (error) {
-      console.error('Send error:', error);
-      alert('Mesaj gönderilemedi! Bağlantıyı kontrol edin.');
+      console.error('❌ ChatWindow - Mesaj gönderme hatası:', error);
+      alert('Mesaj gönderilemedi! Hata: ' + error.message);
     } finally {
       setIsSending(false);
     }

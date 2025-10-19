@@ -176,11 +176,14 @@ export class P2PManager {
 
       case 'message':
         // Şifreli mesajı çöz
+        console.log('📨 Şifreli mesaj alındı:', peerId);
         try {
+          console.log('🔓 Mesaj şifresi çözülüyor...');
           const decryptedMessage = await CryptoHelper.decrypt(
             this.privateKey,
             data.encrypted
           );
+          console.log('✅ Mesaj şifresi çözüldü:', decryptedMessage);
           
           this.onMessageCallback?.({
             from: peerId,
@@ -188,8 +191,9 @@ export class P2PManager {
             timestamp: data.timestamp,
             encrypted: true
           });
+          console.log('✅ Mesaj callback\'e iletildi');
         } catch (error) {
-          console.error('Decryption error:', error);
+          console.error('❌ Şifre çözme hatası:', error);
         }
         break;
 
@@ -206,18 +210,35 @@ export class P2PManager {
   // Mesaj gönder
   async sendMessage(peerId, message) {
     const conn = this.connections.get(peerId);
-    if (!conn || !conn.publicKey) {
-      throw new Error('Connection not ready');
+    console.log('🔵 sendMessage çağrıldı:', { peerId, message, conn: !!conn, publicKey: !!conn?.publicKey });
+    
+    if (!conn) {
+      console.error('❌ Bağlantı bulunamadı:', peerId);
+      throw new Error('Bağlantı bulunamadı');
+    }
+    
+    if (!conn.publicKey) {
+      console.error('❌ Public key yok! Bağlantı henüz hazır değil.');
+      throw new Error('Bağlantı henüz hazır değil - Public key bekleniyor');
     }
 
-    // Mesajı şifrele
-    const encrypted = await CryptoHelper.encrypt(conn.publicKey, message);
+    try {
+      // Mesajı şifrele
+      console.log('🔐 Mesaj şifreleniyor...');
+      const encrypted = await CryptoHelper.encrypt(conn.publicKey, message);
+      console.log('✅ Mesaj şifrelendi, gönderiliyor...');
 
-    conn.send({
-      type: 'message',
-      encrypted: encrypted,
-      timestamp: Date.now()
-    });
+      conn.send({
+        type: 'message',
+        encrypted: encrypted,
+        timestamp: Date.now()
+      });
+      
+      console.log('✅ Mesaj gönderildi!', peerId);
+    } catch (error) {
+      console.error('❌ Mesaj gönderme hatası:', error);
+      throw error;
+    }
   }
 
   // Yazıyor durumunu gönder
