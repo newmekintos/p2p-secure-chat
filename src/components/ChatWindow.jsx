@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Info, Trash2, Lock, Radio } from 'lucide-react';
+import { Send, Info, Trash2, Lock, Radio, Menu } from 'lucide-react';
 import { storage } from '../utils/storage';
 
-function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact }) {
+function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, onMobileMenuClick }) {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -103,17 +103,31 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact })
 
   if (!contact) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-900">
-        <div className="text-center">
-          <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Radio className="w-10 h-10 text-gray-600" />
+      <div className="flex-1 flex flex-col bg-gray-900">
+        {/* Mobil Header - Kişi Seçili Değilken */}
+        <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center px-4 lg:hidden">
+          <button
+            onClick={onMobileMenuClick}
+            className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400"
+            title="Menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <h2 className="ml-3 text-white font-semibold">P2P Şifreli Chat</h2>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Radio className="w-10 h-10 text-gray-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-300 mb-2">
+              Mesajlaşmaya Başlayın
+            </h3>
+            <p className="text-gray-500">
+              Bir kişi seçin veya yeni kişi ekleyin
+            </p>
           </div>
-          <h3 className="text-xl font-semibold text-gray-300 mb-2">
-            Mesajlaşmaya Başlayın
-          </h3>
-          <p className="text-gray-500">
-            Bir kişi seçin veya yeni kişi ekleyin
-          </p>
         </div>
       </div>
     );
@@ -122,8 +136,16 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact })
   return (
     <div className="flex-1 flex flex-col bg-gray-900">
       {/* Chat Header */}
-      <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-6">
+      <div className="h-16 bg-gray-800 border-b border-gray-700 flex items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
+          {/* Mobil Hamburger Menu */}
+          <button
+            onClick={onMobileMenuClick}
+            className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 lg:hidden"
+            title="Menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
           <div className="relative">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold">

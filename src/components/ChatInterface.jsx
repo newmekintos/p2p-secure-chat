@@ -9,6 +9,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [selectedContact, setSelectedContact] = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
   const [onlineContacts, setOnlineContacts] = useState(new Set());
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     const initConnections = async () => {
@@ -51,6 +52,25 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         // ChatWindow kendi mesajlarını reload edecek
       }
     });
+
+    // Gelen peer'leri otomatik ekle (tek yönlü mesajlaşma için)
+    p2pManager.onIncomingPeerCallback = async (peerInfo) => {
+      console.log('Yeni peer bağlandı:', peerInfo);
+      
+      // Eğer bu kişi zaten kayıtlı değilse otomatik ekle
+      const existingContact = await storage.getContact(peerInfo.peerId);
+      if (!existingContact) {
+        const newContact = {
+          peerId: peerInfo.peerId,
+          name: peerInfo.username,
+          addedAt: Date.now(),
+          autoAdded: true // Otomatik eklendiğini işaretle
+        };
+        await storage.saveContact(newContact);
+        await loadContacts();
+        console.log('Kişi otomatik eklendi:', newContact);
+      }
+    };
 
     // Bağlantı event'lerini dinle
     p2pManager.onConnection((data) => {
@@ -113,7 +133,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   };
 
   return (
-    <div className="h-screen flex bg-gray-900">
+    <div className="h-screen flex bg-gray-900 relative">
       <Sidebar
         profile={profile}
         contacts={contacts}
@@ -123,6 +143,8 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         onLogout={onLogout}
         status={status}
         onlineContacts={onlineContacts}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
       />
 
       <ChatWindow
@@ -131,6 +153,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         profile={profile}
         isOnline={selectedContact ? onlineContacts.has(selectedContact.peerId) : false}
         onDeleteContact={handleDeleteContact}
+        onMobileMenuClick={() => setIsMobileSidebarOpen(true)}
       />
 
       {showAddContact && (

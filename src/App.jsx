@@ -33,7 +33,7 @@ function App() {
   }, [p2pManager]);
 
   const handleLogin = async (username) => {
-    const peerId = await p2pManager.initialize();
+    const peerId = await p2pManager.initialize(null, username);
     const newProfile = {
       username,
       peerId,

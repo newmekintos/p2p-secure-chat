@@ -1,13 +1,18 @@
 import { User, UserPlus, LogOut, Copy, CheckCircle, Radio } from 'lucide-react';
 import { useState } from 'react';
 
-function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts }) {
+function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts, isMobileOpen, onMobileClose }) {
   const [copied, setCopied] = useState(false);
 
   const copyPeerId = () => {
     navigator.clipboard.writeText(profile.peerId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSelectContact = (contact) => {
+    onSelectContact(contact);
+    onMobileClose?.(); // Mobilde kişi seçilince sidebar'ı kapat
   };
 
   const getStatusColor = () => {
@@ -29,7 +34,26 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
   };
 
   return (
-    <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+    <>
+      {/* Mobil Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onMobileClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`
+        fixed lg:relative
+        inset-y-0 left-0
+        w-80 bg-gray-800 
+        border-r border-gray-700 
+        flex flex-col
+        z-50
+        transform transition-transform duration-300 ease-in-out
+        ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
       {/* Profil Bölümü */}
       <div className="p-4 border-b border-gray-700">
         <div className="flex items-center gap-3 mb-3">
@@ -104,7 +128,7 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
               return (
                 <button
                   key={contact.peerId}
-                  onClick={() => onSelectContact(contact)}
+                  onClick={() => handleSelectContact(contact)}
                   className={`w-full flex items-center gap-3 p-3 rounded-lg transition mb-1 ${
                     isSelected 
                       ? 'bg-blue-600/20 border border-blue-500/50' 
@@ -142,6 +166,7 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
         </p>
       </div>
     </div>
+    </>
   );
 }
 

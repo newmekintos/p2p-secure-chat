@@ -8,14 +8,17 @@ export class P2PManager {
     this.publicKey = null;
     this.privateKey = null;
     this.peerId = null;
+    this.username = null;
     this.onMessageCallback = null;
     this.onConnectionCallback = null;
     this.onDisconnectionCallback = null;
     this.onStatusCallback = null;
+    this.onIncomingPeerCallback = null; // Yeni: Gelen peer bildirimi
   }
 
   // P2P bağlantıyı başlat
-  async initialize(userId = null) {
+  async initialize(userId = null, username = null) {
+    this.username = username;
     try {
       // Anahtarları üret
       const keyPair = await CryptoHelper.generateKeyPair();
@@ -62,7 +65,19 @@ export class P2PManager {
         });
 
         this.peer.on('disconnected', () => {
-          console.log('Peer disconnected');
+          console.log('Peer disconnected from server, attempting reconnection...');
+          this.onStatusCallback?.('reconnecting');
+          
+          // 2 saniye sonra yeniden bağlan
+          setTimeout(() => {
+            if (this.peer && !this.peer.destroyed) {
+              this.peer.reconnect();
+            }
+          }, 2000);
+        });
+
+        this.peer.on('close', () => {
+          console.log('Peer connection closed');
           this.onStatusCallback?.('disconnected');
         });
       });
@@ -97,12 +112,14 @@ export class P2PManager {
       conn.send({
         type: 'public-key',
         publicKey: publicKeyData,
-        peerId: this.peerId
+        peerId: this.peerId,
+        username: this.username || 'Unknown' // Kullanıcı adını da gönder
       });
 
       this.onConnectionCallback?.({
         peerId: conn.peer,
-        connected: true
+        connected: true,
+        username: conn.metadata?.username
       });
     });
 
@@ -129,6 +146,13 @@ export class P2PManager {
         const publicKey = await CryptoHelper.importPublicKey(data.publicKey);
         this.connections.get(peerId).publicKey = publicKey;
         this.connections.get(peerId).peerName = data.peerId;
+        this.connections.get(peerId).username = data.username;
+        
+        // Yeni peer geldiğini bildir (otomatik ekleme için)
+        this.onIncomingPeerCallback?.({
+          peerId: data.peerId,
+          username: data.username || 'Unknown User'
+        });
         break;
 
       case 'message':
