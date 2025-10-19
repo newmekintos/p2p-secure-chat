@@ -11,20 +11,11 @@ function App() {
   const [status, setStatus] = useState('disconnected');
 
   useEffect(() => {
-    // Storage'ı başlat ve profili yükle
+    // Storage'ı başlat - eski profili temizle
     const initStorage = async () => {
       await storage.init();
-      const savedProfile = await storage.getProfile();
-      if (savedProfile) {
-        setProfile(savedProfile);
-        // Otomatik olarak P2P'yi başlat
-        try {
-          await p2pManager.initialize(savedProfile.peerId);
-          setIsInitialized(true);
-        } catch (error) {
-          console.error('Auto-init failed:', error);
-        }
-      }
+      // Çıkış yapıldıktan sonra yeni giriş için profili temizle
+      await storage.clearAll();
     };
     initStorage();
 

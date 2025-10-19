@@ -37,7 +37,13 @@ export class P2PManager {
       this.peer = userId ? new Peer(userId, config) : new Peer(config);
 
       return new Promise((resolve, reject) => {
+        // 15 saniye timeout
+        const timeout = setTimeout(() => {
+          reject(new Error('Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.'));
+        }, 15000);
+
         this.peer.on('open', (id) => {
+          clearTimeout(timeout);
           this.peerId = id;
           console.log('Peer ID:', id);
           this.onStatusCallback?.('connected', id);
@@ -49,6 +55,7 @@ export class P2PManager {
         });
 
         this.peer.on('error', (err) => {
+          clearTimeout(timeout);
           console.error('Peer error:', err);
           this.onStatusCallback?.('error', err.message);
           reject(err);
