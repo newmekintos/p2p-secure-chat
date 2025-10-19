@@ -35,11 +35,8 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     p2pManager.onMessage(async (data) => {
       console.log('🎯 ChatInterface - Mesaj alındı:', data);
       
-      if (data.type === 'typing') {
-        // Typing event'i ChatWindow'da handle edilir
-        console.log('⌨️ Typing event, ChatWindow\'a iletiliyor');
-        return;
-      }
+      // Typing event'leri için özel handler yok - direkt geç
+      // ChatWindow kendi typing state'ini yönetecek
 
       if (data.message && data.from) {
         console.log('💾 Mesaj kaydediliyor:', data.from, data.message);
@@ -123,6 +120,24 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     }
   };
 
+  const handleAddAndChat = async (contact) => {
+    await storage.saveContact(contact);
+    const allContacts = await storage.getAllContacts();
+    setContacts(allContacts);
+    setShowAddContact(false);
+    
+    // Kişiyi seç (chat'e git)
+    setSelectedContact(contact);
+    
+    // Bağlanmayı dene
+    try {
+      await p2pManager.connectToPeer(contact.peerId);
+      console.log('✅ QR ile eklenen kişiye bağlanıldı:', contact.peerId);
+    } catch (error) {
+      console.log('ℹ️ Bağlantı kurulacak:', error.message);
+    }
+  };
+
   const handleDeleteContact = async (peerId) => {
     if (confirm('Bu kişiyi silmek istediğinizden emin misiniz?')) {
       await storage.deleteContact(peerId);
@@ -176,6 +191,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         <AddContactModal
           onClose={() => setShowAddContact(false)}
           onAdd={handleAddContact}
+          onAddAndChat={handleAddAndChat}
           myPeerId={profile.peerId}
         />
       )}

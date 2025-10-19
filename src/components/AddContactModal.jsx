@@ -2,11 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { X, UserPlus, AlertCircle, QrCode, Camera } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 
-function AddContactModal({ onClose, onAdd, myPeerId }) {
+function AddContactModal({ onClose, onAdd, myPeerId, onAddAndChat }) {
   const [name, setName] = useState('');
   const [peerId, setPeerId] = useState('');
   const [error, setError] = useState('');
   const [isScanning, setIsScanning] = useState(false);
+  const [autoAddFromQR, setAutoAddFromQR] = useState(false);
   const qrScannerRef = useRef(null);
   const nameInputRef = useRef(null);
   const scannerDivId = 'qr-reader';
@@ -48,7 +49,7 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
         (decodedText) => {
           // QR kod okundu
           console.log('QR kod tarandı:', decodedText);
-          setPeerId(decodedText);
+          
           // Scanner'ı durdur
           if (qrScannerRef.current) {
             qrScannerRef.current.stop()
@@ -56,20 +57,30 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
                 console.log('Scanner başarıyla durduruldu');
                 qrScannerRef.current = null;
                 setIsScanning(false);
-                // İsim alanına focus et
-                setTimeout(() => {
-                  nameInputRef.current?.focus();
-                }, 100);
               })
               .catch(err => {
                 console.log('Scanner durdurulamadı (zaten durmuş olabilir)');
                 qrScannerRef.current = null;
                 setIsScanning(false);
-                // İsim alanına focus et
-                setTimeout(() => {
-                  nameInputRef.current?.focus();
-                }, 100);
               });
+          }
+          
+          // Otomatik kişi ekle ve chat'e git
+          const randomName = 'Kullanıcı_' + decodedText.substring(0, 6);
+          const newContact = {
+            name: randomName,
+            peerId: decodedText,
+            addedAt: Date.now(),
+            autoAdded: true
+          };
+          
+          console.log('🎯 QR ile otomatik ekleniyor:', newContact);
+          
+          // Kişiyi ekle ve direkt chat'e git
+          if (onAddAndChat) {
+            onAddAndChat(newContact);
+          } else {
+            onAdd(newContact);
           }
         },
         (errorMessage) => {

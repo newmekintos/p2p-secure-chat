@@ -16,6 +16,21 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
     // Mesajları yükle
     loadMessages();
 
+    // Typing event'lerini dinle
+    const originalCallback = p2pManager.onMessageCallback;
+    p2pManager.onMessageCallback = (data) => {
+      // Önce orijinal callback'i çağır
+      if (originalCallback) {
+        originalCallback(data);
+      }
+      
+      // Typing event'i bu kişiden geliyorsa handle et
+      if (data.type === 'typing' && data.from === contact.peerId) {
+        setIsTyping(data.typing);
+        console.log('⌨️ Typing:', data.typing, 'from:', contact.peerId);
+      }
+    };
+
     // Mesajları her 500ms'de bir yenile (daha hızlı)
     const messageInterval = setInterval(() => {
       loadMessages();
@@ -23,6 +38,8 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
 
     return () => {
       clearInterval(messageInterval);
+      // Callback'i restore et
+      p2pManager.onMessageCallback = originalCallback;
     };
   }, [contact, p2pManager]);
 
@@ -260,10 +277,10 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
           <button
             type="submit"
             disabled={!inputMessage.trim() || !isOnline || isSending}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition flex items-center gap-2 font-medium"
+            className="px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition flex items-center gap-2 font-medium"
           >
             <Send className="w-5 h-5" />
-            {isSending ? 'Gönderiliyor...' : 'Gönder'}
+            <span className="hidden sm:inline">{isSending ? 'Gönderiliyor...' : 'Gönder'}</span>
           </button>
         </form>
       </div>

@@ -4,7 +4,7 @@ Tamamen frontend tabanlı, merkezi olmayan, sansürlenemez ve uçtan uca şifrel
 
 ## ✨ Özellikler
 
-- **🔐 Uçtan Uca Şifreleme**: RSA-2048 ile tüm mesajlar şifrelenir
+- **🔐 Uçtan Uca Şifreleme**: RSA-4096 + SHA-512 ile askeri düzeyde güvenlik
 - **🌐 P2P (Peer-to-Peer)**: Doğrudan cihazlar arası bağlantı, sunucu yok
 - **🚫 Sansürlenemez**: Hiçbir merkezi otorite mesajları engelleyemez
 - **👻 Anonim**: Kayıt, veritabanı veya kullanıcı takibi yok
@@ -76,7 +76,7 @@ IndexedDB                  IndexedDB
 ```
 
 ### Güvenlik
-- RSA-2048 bit asimetrik şifreleme
+- RSA-4096 bit asimetrik şifreleme + SHA-512 hash
 - Her kullanıcının benzersiz anahtar çifti
 - Mesajlar istemci tarafında şifrelenir/çözülür
 - Hiçbir veri sunucuda saklanmaz

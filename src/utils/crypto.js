@@ -1,13 +1,13 @@
 // Uçtan uca şifreleme utilities
 export class CryptoHelper {
-  // Anahtar üret
+  // Anahtar üret - RSA-4096 ile daha güçlü
   static async generateKeyPair() {
     const keyPair = await window.crypto.subtle.generateKey(
       {
         name: 'RSA-OAEP',
-        modulusLength: 2048,
+        modulusLength: 4096, // 2048'den 4096'ya çıkarıldı
         publicExponent: new Uint8Array([1, 0, 1]),
-        hash: 'SHA-256',
+        hash: 'SHA-512', // SHA-256'dan SHA-512'ye çıkarıldı
       },
       true,
       ['encrypt', 'decrypt']
@@ -35,7 +35,7 @@ export class CryptoHelper {
       binaryKey,
       {
         name: 'RSA-OAEP',
-        hash: 'SHA-256',
+        hash: 'SHA-512',
       },
       true,
       ['encrypt']
@@ -50,7 +50,7 @@ export class CryptoHelper {
       binaryKey,
       {
         name: 'RSA-OAEP',
-        hash: 'SHA-256',
+        hash: 'SHA-512',
       },
       true,
       ['decrypt']

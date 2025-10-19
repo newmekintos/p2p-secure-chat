@@ -47,7 +47,7 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
       <div className={`
         fixed lg:relative
         inset-y-0 left-0
-        w-80 bg-gray-800 
+        w-full sm:w-80 bg-gray-800 
         border-r border-gray-700 
         flex flex-col
         z-50
