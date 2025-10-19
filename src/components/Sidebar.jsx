@@ -1,0 +1,148 @@
+import { User, UserPlus, LogOut, Copy, CheckCircle, Radio } from 'lucide-react';
+import { useState } from 'react';
+
+function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts }) {
+  const [copied, setCopied] = useState(false);
+
+  const copyPeerId = () => {
+    navigator.clipboard.writeText(profile.peerId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const getStatusColor = () => {
+    switch (status) {
+      case 'connected': return 'bg-green-500';
+      case 'disconnected': return 'bg-red-500';
+      case 'error': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = () => {
+    switch (status) {
+      case 'connected': return 'Çevrimiçi';
+      case 'disconnected': return 'Çevrimdışı';
+      case 'error': return 'Hata';
+      default: return 'Bağlanıyor...';
+    }
+  };
+
+  return (
+    <div className="w-80 bg-gray-800 border-r border-gray-700 flex flex-col">
+      {/* Profil Bölümü */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <User className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-white truncate">{profile.username}</h2>
+            <div className="flex items-center gap-1.5">
+              <div className={`w-2 h-2 rounded-full ${getStatusColor()}`} />
+              <span className="text-xs text-gray-400">{getStatusText()}</span>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-red-400"
+            title="Çıkış Yap"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Peer ID */}
+        <div className="bg-gray-900/50 rounded-lg p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-500 mb-1">Peer ID</p>
+              <p className="text-xs text-gray-300 font-mono truncate">{profile.peerId}</p>
+            </div>
+            <button
+              onClick={copyPeerId}
+              className="p-1.5 hover:bg-gray-700 rounded transition flex-shrink-0"
+              title="Kopyala"
+            >
+              {copied ? (
+                <CheckCircle className="w-4 h-4 text-green-400" />
+              ) : (
+                <Copy className="w-4 h-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Kişi Ekleme Butonu */}
+      <div className="p-4 border-b border-gray-700">
+        <button
+          onClick={onAddContact}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
+        >
+          <UserPlus className="w-5 h-5" />
+          Kişi Ekle
+        </button>
+      </div>
+
+      {/* Kişiler Listesi */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {contacts.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <User className="w-8 h-8 text-gray-500" />
+            </div>
+            <p className="text-gray-400 text-sm mb-1">Henüz kişi yok</p>
+            <p className="text-gray-500 text-xs">Mesajlaşmaya başlamak için kişi ekleyin</p>
+          </div>
+        ) : (
+          <div className="p-2">
+            {contacts.map((contact) => {
+              const isOnline = onlineContacts.has(contact.peerId);
+              const isSelected = selectedContact?.peerId === contact.peerId;
+              
+              return (
+                <button
+                  key={contact.peerId}
+                  onClick={() => onSelectContact(contact)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition mb-1 ${
+                    isSelected 
+                      ? 'bg-blue-600/20 border border-blue-500/50' 
+                      : 'hover:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="relative">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isSelected ? 'bg-blue-500' : 'bg-gray-700'
+                    }`}>
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    {isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-gray-800 rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="font-medium text-white truncate">{contact.name}</p>
+                    <p className="text-xs text-gray-400 flex items-center gap-1">
+                      <Radio className="w-3 h-3" />
+                      {isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Footer Bilgi */}
+      <div className="p-3 border-t border-gray-700">
+        <p className="text-xs text-center text-gray-500">
+          🔒 Uçtan uca şifreli • P2P bağlantı
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default Sidebar;
