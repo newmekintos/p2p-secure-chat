@@ -33,20 +33,15 @@ function App() {
   }, [p2pManager]);
 
   const handleLogin = async (username) => {
-    try {
-      const peerId = await p2pManager.initialize();
-      const newProfile = {
-        username,
-        peerId,
-        createdAt: Date.now()
-      };
-      await storage.saveProfile(newProfile);
-      setProfile(newProfile);
-      setIsInitialized(true);
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Bağlantı hatası! Lütfen tekrar deneyin.');
-    }
+    const peerId = await p2pManager.initialize();
+    const newProfile = {
+      username,
+      peerId,
+      createdAt: Date.now()
+    };
+    await storage.saveProfile(newProfile);
+    setProfile(newProfile);
+    setIsInitialized(true);
   };
 
   const handleLogout = async () => {

@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Shield, Lock, Radio } from 'lucide-react';
+import { Shield, Lock, Radio, AlertCircle, RefreshCw } from 'lucide-react';
 
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim()) return;
     
     setIsLoading(true);
+    setError('');
     try {
       await onLogin(username.trim());
     } catch (error) {
       setIsLoading(false);
+      setError(error.message || 'Bağlantı hatası! Lütfen tekrar deneyin.');
+      console.error('Login error:', error);
     }
   };
 
@@ -69,6 +73,23 @@ function LoginScreen({ onLogin }) {
         {/* Giriş Formu */}
         <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700/50">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Hata Mesajı */}
+            {error && (
+              <div className="flex items-start gap-3 p-4 bg-red-900/20 border border-red-700/50 rounded-xl">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-red-300">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="mt-2 text-xs text-red-400 hover:text-red-300 underline"
+                  >
+                    Kapat
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
                 Kullanıcı Adı
@@ -93,13 +114,25 @@ function LoginScreen({ onLogin }) {
               {isLoading ? (
                 <span className="flex items-center justify-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Bağlanıyor...
+                  Bağlanıyor... (30 saniye bekleniyor)
                 </span>
               ) : (
-                'Platformu Başlat'
+                <span className="flex items-center justify-center gap-2">
+                  {error && <RefreshCw className="w-5 h-5" />}
+                  {error ? 'Tekrar Dene' : 'Platformu Başlat'}
+                </span>
               )}
             </button>
           </form>
+
+          {/* Mobil İpucu */}
+          {isLoading && (
+            <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500">
+                ⏳ Mobil cihazlarda bağlantı biraz daha uzun sürebilir
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Bilgilendirme */}
