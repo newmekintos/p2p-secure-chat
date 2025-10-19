@@ -1,7 +1,7 @@
-import { User, UserPlus, LogOut, Copy, CheckCircle, Radio } from 'lucide-react';
+import { User, UserPlus, LogOut, Copy, CheckCircle, Radio, QrCode } from 'lucide-react';
 import { useState } from 'react';
 
-function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts, isMobileOpen, onMobileClose }) {
+function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts, isMobileOpen, onMobileClose, onShowQR }) {
   const [copied, setCopied] = useState(false);
 
   const copyPeerId = () => {
@@ -83,17 +83,26 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
               <p className="text-xs text-gray-500 mb-1">Peer ID</p>
               <p className="text-xs text-gray-300 font-mono truncate">{profile.peerId}</p>
             </div>
-            <button
-              onClick={copyPeerId}
-              className="p-1.5 hover:bg-gray-700 rounded transition flex-shrink-0"
-              title="Kopyala"
-            >
-              {copied ? (
-                <CheckCircle className="w-4 h-4 text-green-400" />
-              ) : (
-                <Copy className="w-4 h-4 text-gray-400" />
-              )}
-            </button>
+            <div className="flex gap-1">
+              <button
+                onClick={onShowQR}
+                className="p-1.5 hover:bg-gray-700 rounded transition flex-shrink-0"
+                title="QR Kod Göster"
+              >
+                <QrCode className="w-4 h-4 text-purple-400" />
+              </button>
+              <button
+                onClick={copyPeerId}
+                className="p-1.5 hover:bg-gray-700 rounded transition flex-shrink-0"
+                title="Kopyala"
+              >
+                {copied ? (
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>

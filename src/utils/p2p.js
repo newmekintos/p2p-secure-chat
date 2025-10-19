@@ -115,6 +115,8 @@ export class P2PManager {
         peerId: this.peerId,
         username: this.username || 'Unknown' // Kullanıcı adını da gönder
       });
+      conn.sentPublicKey = true; // Public key gönderildi işaretle
+      console.log('Public key gönderildi:', conn.peer);
 
       this.onConnectionCallback?.({
         peerId: conn.peer,
@@ -144,9 +146,26 @@ export class P2PManager {
       case 'public-key':
         // Karşı tarafın public key'ini sakla
         const publicKey = await CryptoHelper.importPublicKey(data.publicKey);
-        this.connections.get(peerId).publicKey = publicKey;
-        this.connections.get(peerId).peerName = data.peerId;
-        this.connections.get(peerId).username = data.username;
+        const conn = this.connections.get(peerId);
+        if (conn) {
+          conn.publicKey = publicKey;
+          conn.peerName = data.peerId;
+          conn.username = data.username;
+          console.log('Public key alındı:', peerId, '✅');
+          
+          // Eğer biz de henüz public key göndermediyse, gönder
+          if (!conn.sentPublicKey) {
+            const myPublicKeyData = await CryptoHelper.exportPublicKey(this.publicKey);
+            conn.send({
+              type: 'public-key',
+              publicKey: myPublicKeyData,
+              peerId: this.peerId,
+              username: this.username || 'Unknown'
+            });
+            conn.sentPublicKey = true;
+            console.log('Public key gönderildi:', peerId);
+          }
+        }
         
         // Yeni peer geldiğini bildir (otomatik ekleme için)
         this.onIncomingPeerCallback?.({

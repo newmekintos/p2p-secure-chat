@@ -3,11 +3,13 @@ import { storage } from '../utils/storage';
 import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import AddContactModal from './AddContactModal';
+import QRModal from './QRModal';
 
 function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [onlineContacts, setOnlineContacts] = useState(new Set());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
@@ -140,6 +142,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         selectedContact={selectedContact}
         onSelectContact={handleSelectContact}
         onAddContact={() => setShowAddContact(true)}
+        onShowQR={() => setShowQRModal(true)}
         onLogout={onLogout}
         status={status}
         onlineContacts={onlineContacts}
@@ -161,6 +164,14 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           onClose={() => setShowAddContact(false)}
           onAdd={handleAddContact}
           myPeerId={profile.peerId}
+        />
+      )}
+
+      {showQRModal && (
+        <QRModal
+          onClose={() => setShowQRModal(false)}
+          peerId={profile.peerId}
+          username={profile.username}
         />
       )}
     </div>

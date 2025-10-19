@@ -1,10 +1,62 @@
-import { useState } from 'react';
-import { X, UserPlus, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, UserPlus, AlertCircle, QrCode, Camera } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 function AddContactModal({ onClose, onAdd, myPeerId }) {
   const [name, setName] = useState('');
   const [peerId, setPeerId] = useState('');
   const [error, setError] = useState('');
+  const [isScanning, setIsScanning] = useState(false);
+  const qrScannerRef = useRef(null);
+  const scannerDivId = 'qr-reader';
+
+  useEffect(() => {
+    return () => {
+      // Cleanup: scanner'ı durdur
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop().catch(err => console.error(err));
+      }
+    };
+  }, []);
+
+  const startQRScanner = async () => {
+    try {
+      setIsScanning(true);
+      setError('');
+      
+      const html5QrCode = new Html5Qrcode(scannerDivId);
+      qrScannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          // QR kod okundu
+          setPeerId(decodedText);
+          stopQRScanner();
+        },
+        (errorMessage) => {
+          // Okuma hatası (normal, sürekli tarama yapıyor)
+        }
+      );
+    } catch (err) {
+      setError('Kamera erişimi reddedildi veya bulunamadı');
+      setIsScanning(false);
+    }
+  };
+
+  const stopQRScanner = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop()
+        .then(() => {
+          setIsScanning(false);
+        })
+        .catch(err => console.error(err));
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -73,17 +125,51 @@ function AddContactModal({ onClose, onAdd, myPeerId }) {
             <label htmlFor="peerId" className="block text-sm font-medium text-gray-300 mb-2">
               Peer ID
             </label>
-            <input
-              type="text"
-              id="peerId"
-              value={peerId}
-              onChange={(e) => setPeerId(e.target.value)}
-              placeholder="Kişinin Peer ID'sini girin"
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-            />
-            <p className="mt-2 text-xs text-gray-500">
-              Karşı tarafın size verdiği Peer ID'yi buraya girin
-            </p>
+            <div className="space-y-2">
+              <input
+                type="text"
+                id="peerId"
+                value={peerId}
+                onChange={(e) => setPeerId(e.target.value)}
+                placeholder="Kişinin Peer ID'sini girin"
+                disabled={isScanning}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm disabled:opacity-50"
+              />
+              
+              {/* QR Tarama Butonu */}
+              {!isScanning ? (
+                <button
+                  type="button"
+                  onClick={startQRScanner}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+                >
+                  <QrCode className="w-5 h-5" />
+                  QR Kod Taratarak Ekle
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={stopQRScanner}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition font-medium"
+                >
+                  <Camera className="w-5 h-5" />
+                  Taramayı Durdur
+                </button>
+              )}
+
+              {/* QR Scanner */}
+              {isScanning && (
+                <div className="bg-gray-900 rounded-lg overflow-hidden">
+                  <div id={scannerDivId} className="w-full"></div>
+                </div>
+              )}
+            </div>
+            
+            {!isScanning && (
+              <p className="mt-2 text-xs text-gray-500">
+                Peer ID yazın veya QR kod taratın
+              </p>
+            )}
           </div>
 
           {/* Info Box */}
