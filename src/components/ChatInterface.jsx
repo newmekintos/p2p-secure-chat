@@ -14,6 +14,19 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [typingPeers, setTypingPeers] = useState(new Map());
 
+  // Mobil sidebar açıkken scroll engelle
+  useEffect(() => {
+    if (isMobileSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileSidebarOpen]);
+
   useEffect(() => {
     const initConnections = async () => {
       await loadContacts();
@@ -67,18 +80,34 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     p2pManager.onIncomingPeerCallback = async (peerInfo) => {
       console.log('Yeni peer bağlandı:', peerInfo);
       
-      // Eğer bu kişi zaten kayıtlı değilse otomatik ekle
       const existingContact = await storage.getContact(peerInfo.peerId);
+      
       if (!existingContact) {
+        // Kişi yoksa otomatik ekle
         const newContact = {
           peerId: peerInfo.peerId,
           name: peerInfo.username,
           addedAt: Date.now(),
-          autoAdded: true // Otomatik eklendiğini işaretle
+          autoAdded: true
         };
         await storage.saveContact(newContact);
         await loadContacts();
         console.log('Kişi otomatik eklendi:', newContact);
+      } else if (existingContact.tempName || existingContact.name === 'Bağlanıyor...') {
+        // Geçici isimle eklenmişse gerçek isimle güncelle
+        const updatedContact = {
+          ...existingContact,
+          name: peerInfo.username,
+          tempName: false
+        };
+        await storage.saveContact(updatedContact);
+        await loadContacts();
+        console.log('✅ Kişi adı güncellendi:', peerInfo.username);
+        
+        // Eğer bu kişi seçiliyse, seçili kişiyi de güncelle
+        if (selectedContact?.peerId === peerInfo.peerId) {
+          setSelectedContact(updatedContact);
+        }
       }
     };
 
@@ -98,6 +127,19 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         return newSet;
       });
     });
+
+    // Sayfa kapatılınca veya yenilenince cleanup
+    const handleBeforeUnload = () => {
+      p2pManager.disconnectAll();
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
   }, [p2pManager]);
 
   const loadContacts = async () => {
@@ -163,7 +205,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   };
 
   return (
-    <div className="h-screen flex bg-gray-900 relative">
+    <div className="h-screen flex bg-gray-900 relative overflow-hidden">
       <Sidebar
         profile={profile}
         contacts={contacts}

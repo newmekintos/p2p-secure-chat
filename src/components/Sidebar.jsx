@@ -173,6 +173,13 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
         <p className="text-xs text-center text-gray-500">
           🔒 Uçtan uca şifreli • P2P bağlantı
         </p>
+        {/* Mobil Kapatma Butonu */}
+        <button
+          onClick={onMobileClose}
+          className="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition lg:hidden"
+        >
+          Kapat
+        </button>
       </div>
     </div>
     </>

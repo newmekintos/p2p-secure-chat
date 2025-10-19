@@ -65,13 +65,14 @@ function AddContactModal({ onClose, onAdd, myPeerId, onAddAndChat }) {
               });
           }
           
-          // Otomatik kişi ekle ve chat'e git
-          const randomName = 'Kullanıcı_' + decodedText.substring(0, 6);
+          // Geçici isimle kişi ekle - username public key değişiminde güncellenecek
+          const tempName = 'Bağlanıyor...';
           const newContact = {
-            name: randomName,
+            name: tempName,
             peerId: decodedText,
             addedAt: Date.now(),
-            autoAdded: true
+            autoAdded: true,
+            tempName: true // Geçici isim olduğunu işaretle
           };
           
           console.log('🎯 QR ile otomatik ekleniyor:', newContact);
