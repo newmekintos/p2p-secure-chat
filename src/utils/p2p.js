@@ -22,18 +22,16 @@ export class P2PManager {
       this.publicKey = keyPair.publicKey;
       this.privateKey = keyPair.privateKey;
 
-      // PeerJS bağlantısını başlat
+      // PeerJS bağlantısını başlat - Cloud sunucu kullan
       const config = {
-        host: '0.peerjs.com',
-        port: 443,
-        path: '/',
-        secure: true,
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
           ]
-        }
+        },
+        debug: 2 // Debug için log seviyesi
       };
 
       this.peer = userId ? new Peer(userId, config) : new Peer(config);
