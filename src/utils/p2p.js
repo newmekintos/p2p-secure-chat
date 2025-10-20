@@ -17,6 +17,7 @@ export class P2PManager {
     this.onDisconnectionCallback = null;
     this.onStatusCallback = null;
     this.onIncomingPeerCallback = null; // Yeni: Gelen peer bildirimi
+    this.onRoomJoinCallback = null; // Yeni: Oda katılım bildirimi
   }
 
   // P2P bağlantıyı başlat
@@ -183,6 +184,19 @@ export class P2PManager {
   // Gelen veriyi işle
   async handleData(peerId, data) {
     switch (data.type) {
+      case 'room-join':
+        // Başka bir peer odaya katıldı - bilgisini kaydet
+        console.log('📥 Oda katılım bildirimi alındı:', data.roomCode, 'from:', data.username);
+        if (this.onRoomJoinCallback) {
+          this.onRoomJoinCallback({
+            roomCode: data.roomCode,
+            roomInfo: data.roomInfo,
+            peerId: data.peerId,
+            username: data.username
+          });
+        }
+        break;
+      
       case 'public-key':
         // Karşı tarafın public key'ini sakla
         const publicKey = await CryptoHelper.importPublicKey(data.publicKey);
@@ -261,35 +275,38 @@ export class P2PManager {
   // Mesaj gönder
   async sendMessage(peerId, message) {
     const conn = this.connections.get(peerId);
-    console.log('🔵 sendMessage çağrıldı:', { peerId, message, conn: !!conn, publicKey: !!conn?.publicKey });
-    
-    if (!conn) {
-      console.error('❌ Bağlantı bulunamadı:', peerId);
-      throw new Error('Bağlantı bulunamadı');
-    }
-    
-    if (!conn.publicKey) {
-      console.error('❌ Public key yok! Bağlantı henüz hazır değil.');
-      throw new Error('Bağlantı henüz hazır değil - Public key bekleniyor');
+    if (!conn || !conn.publicKey) {
+      throw new Error('Peer not connected or public key not available');
     }
 
-    try {
-      // Mesajı şifrele
-      console.log('🔐 Mesaj şifreleniyor...');
-      const encrypted = await CryptoHelper.encrypt(conn.publicKey, message);
-      console.log('✅ Mesaj şifrelendi, gönderiliyor...');
+    // Mesajı şifrele
+    const encryptedMessage = await CryptoHelper.encrypt(message, conn.publicKey);
+    
+    conn.send({
+      type: 'message',
+      message: encryptedMessage,
+      from: this.peerId,
+      timestamp: Date.now()
+    });
+  }
 
-      conn.send({
-        type: 'message',
-        encrypted: encrypted,
-        timestamp: Date.now()
-      });
-      
-      console.log('✅ Mesaj gönderildi!', peerId);
-    } catch (error) {
-      console.error('❌ Mesaj gönderme hatası:', error);
-      throw error;
-    }
+  // Oda bilgisi BROADCAST et (tüm bağlı peer'lere)
+  broadcastRoomJoin(roomCode, roomInfo) {
+    console.log('📢 Oda katılım broadcast ediliyor:', roomCode);
+    this.connections.forEach((conn, peerId) => {
+      try {
+        conn.send({
+          type: 'room-join',
+          roomCode: roomCode,
+          roomInfo: roomInfo,
+          peerId: this.peerId,
+          username: this.username
+        });
+        console.log('✅ Broadcast gönderildi:', peerId);
+      } catch (error) {
+        console.warn('⚠️ Broadcast gönderilemedi:', peerId);
+      }
+    });
   }
 
   // Yazıyor durumunu gönder

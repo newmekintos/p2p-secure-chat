@@ -99,6 +99,55 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       }
     });
 
+    // Oda katılım bildirimlerini dinle
+    p2pManager.onRoomJoinCallback = async (roomJoinData) => {
+      console.log('📥 Oda katılım bildirimi:', roomJoinData);
+      
+      const { roomCode, roomInfo, peerId: senderPeerId, username: senderUsername } = roomJoinData;
+      
+      // Bu odayı storage'a kaydet veya güncelle
+      let room = await storage.getRoom(roomCode);
+      if (!room && roomInfo) {
+        // Oda yok, yeni oluştur
+        room = {
+          roomCode: roomCode,
+          name: roomInfo.name || `Oda ${roomCode}`,
+          createdAt: Date.now(),
+          creatorPeerId: roomInfo.creatorPeerId,
+          members: [{
+            peerId: roomInfo.creatorPeerId,
+            username: roomInfo.creatorUsername,
+            joinedAt: Date.now()
+          }],
+          isGroup: true
+        };
+        await storage.saveRoom(room);
+        console.log('✅ Broadcast ile oda eklendi:', roomCode);
+      }
+      
+      // Göndereni üye olarak ekle (eğer yeni üye bilgisi varsa)
+      if (roomInfo && roomInfo.newMemberPeerId && room) {
+        await storage.addRoomMember(roomCode, {
+          peerId: roomInfo.newMemberPeerId,
+          username: roomInfo.newMemberUsername,
+          joinedAt: Date.now()
+        });
+        console.log('✅ Yeni üye eklendi:', roomInfo.newMemberUsername);
+        
+        // Yeni üyeye bağlan
+        if (roomInfo.newMemberPeerId !== profile.peerId) {
+          try {
+            await p2pManager.connectToPeer(roomInfo.newMemberPeerId);
+            console.log('✅ Yeni üyeye bağlanıldı');
+          } catch (error) {
+            console.warn('⚠️ Yeni üyeye bağlanılamadı');
+          }
+        }
+      }
+      
+      await loadRooms();
+    };
+    
     // Gelen peer'leri otomatik ekle (tek yönlü mesajlaşma için)
     p2pManager.onIncomingPeerCallback = async (peerInfo) => {
       console.log('Yeni peer bağlandı:', peerInfo);
@@ -275,6 +324,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     // Odayı storage'a kaydet
     let room = await storage.getRoom(roomCode);
     if (!room) {
+      // YENİ ODA OLUŞTUR
       room = {
         roomCode: roomCode,
         name: `Oda ${roomCode}`,
@@ -290,6 +340,13 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       await storage.saveRoom(room);
       console.log('✅ Yeni oda oluşturuldu:', roomCode);
       console.log('🔑 Oda sahibi Peer ID:', profile.peerId);
+      
+      // TÜM BAĞLI PEER'LERE BROADCAST ET (oda açıldığını duyur)
+      p2pManager.broadcastRoomJoin(roomCode, {
+        creatorPeerId: profile.peerId,
+        creatorUsername: profile.username,
+        name: room.name
+      });
     } else {
       // Kendini üye olarak ekle
       await storage.addRoomMember(roomCode, {
@@ -321,6 +378,15 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           }
         }
       }
+      
+      // TÜM BAĞLI PEER'LERE BROADCAST ET (ben bu odaya katıldım)
+      p2pManager.broadcastRoomJoin(roomCode, {
+        creatorPeerId: room.creatorPeerId,
+        creatorUsername: room.members?.find(m => m.peerId === room.creatorPeerId)?.username,
+        name: room.name,
+        newMemberPeerId: profile.peerId,
+        newMemberUsername: profile.username
+      });
     }
     
     await loadRooms();
