@@ -13,6 +13,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [onlineContacts, setOnlineContacts] = useState(new Set());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [typingPeers, setTypingPeers] = useState(new Map());
+  const [nearbyDevices, setNearbyDevices] = useState([]);
 
   // Mobil sidebar açıkken scroll engelle
   useEffect(() => {
@@ -30,6 +31,10 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   useEffect(() => {
     const initConnections = async () => {
       await loadContacts();
+      await loadNearbyDevices();
+      
+      // Eski cihazları temizle
+      await storage.cleanupOldDevices();
       
       // Tüm kayıtlı kişilere otomatik bağlan
       const savedContacts = await storage.getAllContacts();
@@ -43,6 +48,16 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     };
 
     initConnections();
+    
+    // Her 2 dakikada bir yakındaki cihazları yenile ve eski olanları temizle
+    const cleanupInterval = setInterval(async () => {
+      await storage.cleanupOldDevices();
+      await loadNearbyDevices();
+    }, 2 * 60 * 1000);
+    
+    return () => {
+      clearInterval(cleanupInterval);
+    };
 
     // GLOBAL mesaj dinleyicisi - TÜM gelen mesajları yakala
     p2pManager.onMessage(async (data) => {
@@ -79,6 +94,24 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     // Gelen peer'leri otomatik ekle (tek yönlü mesajlaşma için)
     p2pManager.onIncomingPeerCallback = async (peerInfo) => {
       console.log('Yeni peer bağlandı:', peerInfo);
+      
+      // Eğer kendi cihazımızsa (aynı kullanıcı adı), yakındaki cihazlara ekle
+      if (peerInfo.isOwnDevice) {
+        console.log('🖥️ Kendi cihazın tespit edildi:', peerInfo.deviceName);
+        const deviceData = {
+          peerId: peerInfo.peerId,
+          username: peerInfo.username,
+          deviceName: peerInfo.deviceName || 'Bilinmeyen Cihaz',
+          deviceInfo: peerInfo.deviceInfo,
+          lastSeen: Date.now()
+        };
+        await storage.saveNearbyDevice(deviceData);
+        await loadNearbyDevices();
+        
+        // Online listesine ekle
+        setOnlineContacts(prev => new Set([...prev, peerInfo.peerId]));
+        return; // Kendi cihazlarımızı contact olarak ekleme
+      }
       
       const existingContact = await storage.getContact(peerInfo.peerId);
       
@@ -145,6 +178,11 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const loadContacts = async () => {
     const savedContacts = await storage.getAllContacts();
     setContacts(savedContacts);
+  };
+
+  const loadNearbyDevices = async () => {
+    const devices = await storage.getAllNearbyDevices();
+    setNearbyDevices(devices);
   };
 
   const handleAddContact = async (contact) => {
@@ -218,6 +256,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         onlineContacts={onlineContacts}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
+        nearbyDevices={nearbyDevices}
       />
 
       <ChatWindow

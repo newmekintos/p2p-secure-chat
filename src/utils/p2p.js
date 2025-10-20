@@ -1,5 +1,6 @@
 import Peer from 'peerjs';
 import { CryptoHelper } from './crypto';
+import { DeviceHelper } from './device';
 
 export class P2PManager {
   constructor() {
@@ -9,6 +10,7 @@ export class P2PManager {
     this.privateKey = null;
     this.peerId = null;
     this.username = null;
+    this.deviceInfo = null;
     this.onMessageCallback = null;
     this.onConnectionCallback = null;
     this.onDisconnectionCallback = null;
@@ -19,6 +21,15 @@ export class P2PManager {
   // P2P bağlantıyı başlat
   async initialize(userId = null, username = null) {
     this.username = username;
+    this.deviceInfo = DeviceHelper.getDeviceInfo();
+    
+    console.log('🖥️ Cihaz bilgisi:', {
+      type: this.deviceInfo.deviceType,
+      os: this.deviceInfo.os,
+      browser: this.deviceInfo.browser,
+      name: DeviceHelper.getDeviceName()
+    });
+    
     try {
       // Anahtarları üret
       const keyPair = await CryptoHelper.generateKeyPair();
@@ -116,13 +127,15 @@ export class P2PManager {
       console.log('Connection opened with', conn.peer);
       this.connections.set(conn.peer, conn);
 
-      // Public key'i paylaş
+      // Public key'i ve cihaz bilgisini paylaş
       const publicKeyData = await CryptoHelper.exportPublicKey(this.publicKey);
       conn.send({
         type: 'public-key',
         publicKey: publicKeyData,
         peerId: this.peerId,
-        username: this.username || 'Unknown' // Kullanıcı adını da gönder
+        username: this.username || 'Unknown',
+        deviceInfo: this.deviceInfo,
+        deviceName: DeviceHelper.getDeviceName()
       });
       conn.sentPublicKey = true; // Public key gönderildi işaretle
       console.log('Public key gönderildi:', conn.peer);
@@ -160,7 +173,9 @@ export class P2PManager {
           conn.publicKey = publicKey;
           conn.peerName = data.peerId;
           conn.username = data.username;
-          console.log('Public key alındı:', peerId, '✅');
+          conn.deviceInfo = data.deviceInfo;
+          conn.deviceName = data.deviceName;
+          console.log('Public key alındı:', peerId, '✅', data.deviceName || '');
           
           // Eğer biz de henüz public key göndermediyse, gönder
           if (!conn.sentPublicKey) {
@@ -169,7 +184,9 @@ export class P2PManager {
               type: 'public-key',
               publicKey: myPublicKeyData,
               peerId: this.peerId,
-              username: this.username || 'Unknown'
+              username: this.username || 'Unknown',
+              deviceInfo: this.deviceInfo,
+              deviceName: DeviceHelper.getDeviceName()
             });
             conn.sentPublicKey = true;
             console.log('Public key gönderildi:', peerId);
@@ -179,7 +196,10 @@ export class P2PManager {
         // Yeni peer geldiğini bildir (otomatik ekleme için)
         this.onIncomingPeerCallback?.({
           peerId: data.peerId,
-          username: data.username || 'Unknown User'
+          username: data.username || 'Unknown User',
+          deviceInfo: data.deviceInfo,
+          deviceName: data.deviceName,
+          isOwnDevice: data.username === this.username // Kendi cihazımız mı?
         });
         break;
 

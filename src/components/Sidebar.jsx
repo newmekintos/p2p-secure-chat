@@ -1,7 +1,20 @@
 import { User, UserPlus, LogOut, Copy, CheckCircle, Radio, QrCode } from 'lucide-react';
 import { useState } from 'react';
 
-function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddContact, onLogout, status, onlineContacts, isMobileOpen, onMobileClose, onShowQR }) {
+function Sidebar({
+  profile,
+  contacts,
+  selectedContact,
+  onSelectContact,
+  onAddContact,
+  onShowQR,
+  onLogout,
+  status,
+  onlineContacts,
+  isMobileOpen,
+  onMobileClose,
+  nearbyDevices = []
+}) {
   const [copied, setCopied] = useState(false);
 
   const copyPeerId = () => {
@@ -117,6 +130,45 @@ function Sidebar({ profile, contacts, selectedContact, onSelectContact, onAddCon
           Kişi Ekle
         </button>
       </div>
+
+      {/* Yakındaki Cihazlarım */}
+      {nearbyDevices.length > 0 && (
+        <div className="px-4 pt-3 pb-2 border-b border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            Yakındaki Cihazlarım
+          </h3>
+          <div className="space-y-1">
+            {nearbyDevices.map((device) => {
+              const isOnline = onlineContacts.has(device.peerId);
+              
+              return (
+                <button
+                  key={device.peerId}
+                  onClick={() => onSelectContact(device)}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-700/50 transition"
+                >
+                  <div className="relative">
+                    <div className="w-9 h-9 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                      <span className="text-lg">{device.deviceInfo?.icon || '🖥️'}</span>
+                    </div>
+                    {isOnline && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {device.deviceName}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {device.deviceInfo?.os || 'Bilinmeyen'}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Kişiler Listesi */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">

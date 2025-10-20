@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'p2p-chat-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Yakındaki cihazlar için version artırıldı
 
 class StorageManager {
   constructor() {
@@ -29,6 +29,13 @@ class StorageManager {
         // Kişiler store
         if (!db.objectStoreNames.contains('contacts')) {
           db.createObjectStore('contacts', { keyPath: 'peerId' });
+        }
+        
+        // Yakındaki cihazlar store
+        if (!db.objectStoreNames.contains('nearbyDevices')) {
+          const devicesStore = db.createObjectStore('nearbyDevices', { keyPath: 'peerId' });
+          devicesStore.createIndex('username', 'username', { unique: false });
+          devicesStore.createIndex('lastSeen', 'lastSeen', { unique: false });
         }
       },
     });
@@ -76,10 +83,45 @@ class StorageManager {
     await this.db.delete('contacts', peerId);
   }
 
+  // Yakındaki cihazlar işlemleri
+  async saveNearbyDevice(device) {
+    await this.db.put('nearbyDevices', {
+      ...device,
+      lastSeen: Date.now()
+    });
+  }
+
+  async getNearbyDevice(peerId) {
+    return await this.db.get('nearbyDevices', peerId);
+  }
+
+  async getAllNearbyDevices() {
+    const devices = await this.db.getAll('nearbyDevices');
+    // Son 5 dakika içinde görülen cihazları döndür
+    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    return devices.filter(device => device.lastSeen > fiveMinutesAgo);
+  }
+
+  async deleteNearbyDevice(peerId) {
+    await this.db.delete('nearbyDevices', peerId);
+  }
+
+  async cleanupOldDevices() {
+    const devices = await this.db.getAll('nearbyDevices');
+    const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+    
+    for (const device of devices) {
+      if (device.lastSeen < tenMinutesAgo) {
+        await this.deleteNearbyDevice(device.peerId);
+      }
+    }
+  }
+
   // Tüm verileri temizle
   async clearAll() {
     await this.db.clear('messages');
     await this.db.clear('contacts');
+    await this.db.clear('nearbyDevices');
     await this.db.clear('profile');
   }
 }
