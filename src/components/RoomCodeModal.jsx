@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Users, Copy, CheckCircle, RefreshCw } from 'lucide-react';
 
-function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin }) {
+function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
   const [roomCode, setRoomCode] = useState('');
   const [myRoomCode, setMyRoomCode] = useState('');
   const [copied, setCopied] = useState(false);
@@ -15,18 +15,19 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin }) {
   }, []);
 
   const generateRoomCode = () => {
-    // 6 karakterlik rastgele kod: ABC-123 formatında
-    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // I, O hariç (karışıklık olmasın)
-    const numbers = '23456789'; // 0, 1 hariç
+    // Oda kodu format: ABC-[PeerID ilk 3 karakter]
+    // Böylece oda kodundan oda sahibini bulabiliriz!
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // I, O hariç
     
-    const code = 
+    const prefix = 
       letters[Math.floor(Math.random() * letters.length)] +
       letters[Math.floor(Math.random() * letters.length)] +
-      letters[Math.floor(Math.random() * letters.length)] +
-      '-' +
-      numbers[Math.floor(Math.random() * numbers.length)] +
-      numbers[Math.floor(Math.random() * numbers.length)] +
-      numbers[Math.floor(Math.random() * numbers.length)];
+      letters[Math.floor(Math.random() * letters.length)];
+    
+    // Peer ID'nin ilk 3 karakterini al (büyük harfe çevir)
+    const peerIdPrefix = profile.peerId.substring(0, 3).toUpperCase();
+    
+    const code = `${prefix}-${peerIdPrefix}`;
     
     setMyRoomCode(code);
   };
@@ -147,8 +148,15 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin }) {
               {activeRoom ? '✅ Oda Aktif' : 'Bu Odayı Aç'}
             </button>
 
+            <button
+              onClick={onShowQR}
+              className="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm"
+            >
+              📱 QR Kod ile Paylaş (Önerilen)
+            </button>
+
             <p className="mt-2 text-xs text-gray-400 text-center">
-              Bu kodu yakındaki kişilere söyle veya paylaş
+              ⚠️ Manuel kod paylaşımı sınırlıdır. QR kod kullanın!
             </p>
           </div>
 

@@ -279,6 +279,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         roomCode: roomCode,
         name: `Oda ${roomCode}`,
         createdAt: Date.now(),
+        creatorPeerId: profile.peerId, // ÖNEMLİ: Oda sahibinin Peer ID'si
         members: [{
           peerId: profile.peerId,
           username: profile.username,
@@ -288,6 +289,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       };
       await storage.saveRoom(room);
       console.log('✅ Yeni oda oluşturuldu:', roomCode);
+      console.log('🔑 Oda sahibi Peer ID:', profile.peerId);
     } else {
       // Kendini üye olarak ekle
       await storage.addRoomMember(roomCode, {
@@ -296,8 +298,19 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         joinedAt: Date.now()
       });
       
-      // Mevcut tüm üyelere bağlan
-      console.log('🔗 Oda üyelerine bağlanılıyor...');
+      // ÖNCE oda sahibine bağlan (eğer varsa ve biz değilsek)
+      if (room.creatorPeerId && room.creatorPeerId !== profile.peerId) {
+        console.log('🔗 Oda sahibine bağlanılıyor:', room.creatorPeerId);
+        try {
+          await p2pManager.connectToPeer(room.creatorPeerId);
+          console.log('✅ Oda sahibine bağlanıldı!');
+        } catch (error) {
+          console.warn('⚠️ Oda sahibine bağlanılamadı:', error);
+        }
+      }
+      
+      // Sonra diğer üyelere bağlan
+      console.log('🔗 Diğer oda üyelerine bağlanılıyor...');
       for (const member of room.members) {
         if (member.peerId !== profile.peerId) {
           try {
@@ -419,6 +432,10 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           profile={profile}
           p2pManager={p2pManager}
           onRoomJoin={handleRoomJoin}
+          onShowQR={() => {
+            setShowRoomModal(false);
+            setShowQRModal(true);
+          }}
         />
       )}
     </div>
