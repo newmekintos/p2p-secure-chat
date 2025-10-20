@@ -14,8 +14,7 @@ function Sidebar({
   status,
   onlineContacts,
   isMobileOpen,
-  onMobileClose,
-  nearbyDevices = []
+  onMobileClose
 }) {
   const [copied, setCopied] = useState(false);
 

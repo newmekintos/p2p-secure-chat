@@ -71,11 +71,14 @@ export class P2PManager {
 
         this.peer.on('error', (err) => {
           clearTimeout(timeout);
-          // "Could not connect" hatasını daha soft göster
+          // Yaygın hataları daha soft göster
           if (err.type === 'peer-unavailable') {
             console.log('ℹ️ Peer şu anda mevcut değil:', err.message);
+          } else if (err.type === 'network' || err.type === 'server-error') {
+            console.warn('⚠️ Bağlantı hatası (otomatik yeniden bağlanılacak):', err.message);
+            this.onStatusCallback?.('reconnecting');
           } else {
-            console.error('Peer error:', err);
+            console.error('❌ Peer error:', err);
             this.onStatusCallback?.('error', err.message);
           }
           

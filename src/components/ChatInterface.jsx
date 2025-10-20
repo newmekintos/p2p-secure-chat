@@ -16,7 +16,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [onlineContacts, setOnlineContacts] = useState(new Set());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [typingPeers, setTypingPeers] = useState(new Map());
-  const [nearbyDevices, setNearbyDevices] = useState([]);
   const [activeRoomCode, setActiveRoomCode] = useState(null);
 
   // Mobil sidebar açıkken scroll engelle
@@ -36,10 +35,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     const initConnections = async () => {
       await loadContacts();
       await loadRooms();
-      await loadNearbyDevices();
-      
-      // Eski cihazları temizle
-      await storage.cleanupOldDevices();
       
       // Aktif oda varsa yükle
       const savedRoomCode = localStorage.getItem('activeRoomCode');
@@ -60,24 +55,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     };
 
     initConnections();
-    
-    // Her 30 saniyede bir yakındaki cihazları yenile
-    const refreshInterval = setInterval(async () => {
-      await loadNearbyDevices();
-      console.log('🔄 Yakındaki cihazlar yenilendi');
-    }, 30 * 1000);
-    
-    // Her 2 dakikada bir eski cihazları temizle
-    const cleanupInterval = setInterval(async () => {
-      await storage.cleanupOldDevices();
-      await loadNearbyDevices();
-      console.log('🧹 Eski cihazlar temizlendi');
-    }, 2 * 60 * 1000);
-    
-    return () => {
-      clearInterval(refreshInterval);
-      clearInterval(cleanupInterval);
-    };
 
     // GLOBAL mesaj dinleyicisi - TÜM gelen mesajları yakala
     p2pManager.onMessage(async (data) => {
@@ -115,19 +92,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     p2pManager.onIncomingPeerCallback = async (peerInfo) => {
       console.log('Yeni peer bağlandı:', peerInfo);
       
-      // Tüm aktif cihazları "yakındaki cihazlar"a ekle (kullanıcı adına bakmaksızın)
-      console.log('🔍 Yakındaki aktif cihaz tespit edildi:', peerInfo.deviceName || peerInfo.username);
-      const deviceData = {
-        peerId: peerInfo.peerId,
-        username: peerInfo.username,
-        deviceName: peerInfo.deviceName || `${peerInfo.username} - Cihaz`,
-        deviceInfo: peerInfo.deviceInfo,
-        lastSeen: Date.now(),
-        isOwnDevice: peerInfo.isOwnDevice // Kendi cihazımız mı işaretle
-      };
-      await storage.saveNearbyDevice(deviceData);
-      await loadNearbyDevices();
-      
       // Online listesine ekle
       setOnlineContacts(prev => new Set([...prev, peerInfo.peerId]));
       
@@ -141,12 +105,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           deviceName: peerInfo.deviceName
         });
         await loadRooms();
-      }
-      
-      // Eğer kendi cihazımız değilse, contact olarak da ekle
-      if (peerInfo.isOwnDevice) {
-        console.log('✅ Kendi cihazın - sadece yakındaki cihazlarda göster');
-        return; // Kendi cihazlarımızı contact olarak ekleme
       }
       
       const existingContact = await storage.getContact(peerInfo.peerId);
@@ -181,17 +139,10 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     };
 
     // Bağlantı event'lerini dinle
-    p2pManager.onConnection(async (data) => {
+    p2pManager.onConnection((data) => {
       if (data.connected) {
         console.log('Peer connected:', data.peerId);
         setOnlineContacts(prev => new Set([...prev, data.peerId]));
-        
-        // Yakındaki cihazlardaki lastSeen'i güncelle
-        const device = await storage.getNearbyDevice(data.peerId);
-        if (device) {
-          await storage.saveNearbyDevice(device); // lastSeen otomatik güncellenir
-          await loadNearbyDevices();
-        }
       }
     });
 
@@ -226,11 +177,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const loadRooms = async () => {
     const savedRooms = await storage.getAllRooms();
     setRooms(savedRooms);
-  };
-
-  const loadNearbyDevices = async () => {
-    const devices = await storage.getAllNearbyDevices();
-    setNearbyDevices(devices);
   };
 
   const handleAddContact = async (contact) => {
@@ -341,7 +287,6 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         onlineContacts={onlineContacts}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
-        nearbyDevices={nearbyDevices}
       />
 
       <ChatWindow
