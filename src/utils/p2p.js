@@ -11,6 +11,7 @@ export class P2PManager {
     this.peerId = null;
     this.username = null;
     this.deviceInfo = null;
+    this.roomCode = null;
     this.onMessageCallback = null;
     this.onConnectionCallback = null;
     this.onDisconnectionCallback = null;
@@ -127,7 +128,7 @@ export class P2PManager {
       console.log('Connection opened with', conn.peer);
       this.connections.set(conn.peer, conn);
 
-      // Public key'i ve cihaz bilgisini paylaş
+      // Public key'i, cihaz bilgisini ve oda kodunu paylaş
       const publicKeyData = await CryptoHelper.exportPublicKey(this.publicKey);
       conn.send({
         type: 'public-key',
@@ -135,7 +136,8 @@ export class P2PManager {
         peerId: this.peerId,
         username: this.username || 'Unknown',
         deviceInfo: this.deviceInfo,
-        deviceName: DeviceHelper.getDeviceName()
+        deviceName: DeviceHelper.getDeviceName(),
+        roomCode: this.roomCode
       });
       conn.sentPublicKey = true; // Public key gönderildi işaretle
       console.log('Public key gönderildi:', conn.peer);
@@ -175,6 +177,17 @@ export class P2PManager {
           conn.username = data.username;
           conn.deviceInfo = data.deviceInfo;
           conn.deviceName = data.deviceName;
+          conn.roomCode = data.roomCode;
+          
+          // Oda kodu kontrolü
+          if (this.roomCode && data.roomCode) {
+            if (this.roomCode === data.roomCode) {
+              console.log('🎯 Aynı odadaki peer bulundu:', peerId, '(Oda:', this.roomCode, ')');
+            } else {
+              console.log('⚠️ Farklı odadan peer:', peerId, '(Onun odası:', data.roomCode, ')');
+            }
+          }
+          
           console.log('Public key alındı:', peerId, '✅', data.deviceName || '');
           
           // Eğer biz de henüz public key göndermediyse, gönder
@@ -186,7 +199,8 @@ export class P2PManager {
               peerId: this.peerId,
               username: this.username || 'Unknown',
               deviceInfo: this.deviceInfo,
-              deviceName: DeviceHelper.getDeviceName()
+              deviceName: DeviceHelper.getDeviceName(),
+              roomCode: this.roomCode
             });
             conn.sentPublicKey = true;
             console.log('Public key gönderildi:', peerId);
@@ -199,7 +213,9 @@ export class P2PManager {
           username: data.username || 'Unknown User',
           deviceInfo: data.deviceInfo,
           deviceName: data.deviceName,
-          isOwnDevice: data.username === this.username // Kendi cihazımız mı?
+          roomCode: data.roomCode,
+          isOwnDevice: data.username === this.username, // Kendi cihazımız mı?
+          isSameRoom: this.roomCode && data.roomCode && this.roomCode === data.roomCode // Aynı odada mı?
         });
         break;
 
@@ -279,6 +295,20 @@ export class P2PManager {
         typing: isTyping
       });
     }
+  }
+
+  // Oda kodunu ayarla
+  setRoomCode(roomCode) {
+    this.roomCode = roomCode;
+    console.log('🚪 Oda kodu ayarlandı:', roomCode);
+    localStorage.setItem('activeRoomCode', roomCode);
+  }
+
+  // Oda kodunu temizle
+  clearRoomCode() {
+    this.roomCode = null;
+    localStorage.removeItem('activeRoomCode');
+    console.log('🚪 Odadan çıkıldı');
   }
 
   // Bağlantıyı kes

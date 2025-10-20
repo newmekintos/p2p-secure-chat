@@ -8,6 +8,7 @@ function Sidebar({
   onSelectContact,
   onAddContact,
   onShowQR,
+  onCreateRoom,
   onLogout,
   status,
   onlineContacts,
@@ -120,7 +121,7 @@ function Sidebar({
         </div>
       </div>
 
-      {/* Kişi Ekle Butonu */}
+      {/* Kişi Ekle ve Oda Oluştur Butonları */}
       <div className="p-4 border-b border-gray-700 space-y-2">
         <button
           onClick={onAddContact}
@@ -130,77 +131,15 @@ function Sidebar({
           Kişi Ekle
         </button>
         
-        <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
-          <div className="text-yellow-400 text-2xl">💡</div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-yellow-300">Yakındaki Cihazları Bul</p>
-            <p className="text-xs text-yellow-400/70 mt-0.5">
-              QR kodu göster veya tarat
-            </p>
-          </div>
-          <button
-            onClick={onShowQR}
-            className="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition"
-          >
-            <QrCode className="w-4 h-4 text-white" />
-          </button>
-        </div>
+        <button
+          onClick={onCreateRoom}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition font-medium"
+        >
+          <Users className="w-5 h-5" />
+          Oda Oluştur
+        </button>
       </div>
 
-      {/* Yakındaki Aktif Cihazlar */}
-      {nearbyDevices.length > 0 && (
-        <div className="px-4 pt-3 pb-2 border-b border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              🔍 Yakındaki Aktif Cihazlar
-            </h3>
-            <span className="text-xs text-green-500 font-medium">
-              {nearbyDevices.length} Aktif
-            </span>
-          </div>
-          <div className="space-y-1">
-            {nearbyDevices.map((device) => {
-              const isOnline = onlineContacts.has(device.peerId);
-              
-              return (
-                <button
-                  key={device.peerId}
-                  onClick={() => onSelectContact(device)}
-                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-700/50 transition"
-                >
-                  <div className="relative">
-                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                      device.isOwnDevice 
-                        ? 'bg-purple-600/20 border border-purple-500/30' 
-                        : 'bg-blue-600/20 border border-blue-500/30'
-                    }`}>
-                      <span className="text-lg">{device.deviceInfo?.icon || '🖥️'}</span>
-                    </div>
-                    {isOnline && (
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full" />
-                    )}
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-medium text-white truncate">
-                        {device.deviceName}
-                      </p>
-                      {device.isOwnDevice && (
-                        <span className="text-xs px-1.5 py-0.5 bg-purple-600/30 text-purple-300 rounded">
-                          Sen
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-400 truncate">
-                      {device.username} • {device.deviceInfo?.os || 'Bilinmeyen'}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Kişiler Listesi */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">

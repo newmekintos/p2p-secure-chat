@@ -4,16 +4,19 @@ import Sidebar from './Sidebar';
 import ChatWindow from './ChatWindow';
 import AddContactModal from './AddContactModal';
 import QRModal from './QRModal';
+import RoomCodeModal from './RoomCodeModal';
 
 function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [contacts, setContacts] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showRoomModal, setShowRoomModal] = useState(false);
   const [onlineContacts, setOnlineContacts] = useState(new Set());
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [typingPeers, setTypingPeers] = useState(new Map());
   const [nearbyDevices, setNearbyDevices] = useState([]);
+  const [activeRoomCode, setActiveRoomCode] = useState(null);
 
   // Mobil sidebar açıkken scroll engelle
   useEffect(() => {
@@ -248,6 +251,15 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     }
   };
 
+  const handleRoomJoin = (roomCode) => {
+    console.log('🚪 Odaya katılındı:', roomCode);
+    setActiveRoomCode(roomCode);
+    p2pManager.setRoomCode(roomCode);
+    
+    // Oda kodunu localStorage'a kaydet
+    localStorage.setItem('activeRoomCode', roomCode);
+  };
+
   const handleSelectContact = async (contact) => {
     setSelectedContact(contact);
     
@@ -270,6 +282,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         onSelectContact={handleSelectContact}
         onAddContact={() => setShowAddContact(true)}
         onShowQR={() => setShowQRModal(true)}
+        onCreateRoom={() => setShowRoomModal(true)}
         onLogout={onLogout}
         status={status}
         onlineContacts={onlineContacts}
@@ -301,6 +314,15 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           onClose={() => setShowQRModal(false)}
           peerId={profile.peerId}
           username={profile.username}
+        />
+      )}
+
+      {showRoomModal && (
+        <RoomCodeModal
+          onClose={() => setShowRoomModal(false)}
+          profile={profile}
+          p2pManager={p2pManager}
+          onRoomJoin={handleRoomJoin}
         />
       )}
     </div>
