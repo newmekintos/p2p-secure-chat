@@ -66,12 +66,23 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       if (data.message && data.from) {
         console.log('💾 Mesaj kaydediliyor:', data.from, data.message);
         
-        // Mesajı kaydet
+        // Mesajı kaydet - eğer activeRoomCode varsa ve gönderen odadaysa, roomCode ile kaydet
+        let chatId = data.from;
+        
+        if (activeRoomCode) {
+          const room = await storage.getRoom(activeRoomCode);
+          if (room && room.members?.some(m => m.peerId === data.from)) {
+            chatId = activeRoomCode; // Oda mesajı olarak kaydet
+            console.log('📥 Oda mesajı:', activeRoomCode);
+          }
+        }
+        
         const newMessage = {
-          peerId: data.from,
+          peerId: chatId,
           message: data.message,
           timestamp: data.timestamp,
-          isSent: false
+          isSent: false,
+          from: data.from
         };
 
         try {
@@ -293,7 +304,11 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         p2pManager={p2pManager}
         contact={selectedContact}
         profile={profile}
-        isOnline={selectedContact ? onlineContacts.has(selectedContact.peerId) : false}
+        isOnline={selectedContact ? (
+          selectedContact.isGroup 
+            ? selectedContact.members?.some(m => onlineContacts.has(m.peerId))
+            : onlineContacts.has(selectedContact.peerId)
+        ) : false}
         onDeleteContact={handleDeleteContact}
         onMobileMenuClick={() => setIsMobileSidebarOpen(true)}
       />

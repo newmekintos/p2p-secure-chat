@@ -49,7 +49,10 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
 
   const loadMessages = async () => {
     if (!contact) return;
-    const msgs = await storage.getMessages(contact.peerId);
+    
+    // Grup odası için roomCode kullan, yoksa peerId
+    const chatId = contact.roomCode || contact.peerId;
+    const msgs = await storage.getMessages(chatId);
     setMessages(msgs);
   };
 
@@ -59,43 +62,79 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    console.log('📤 ChatWindow - Mesaj gönderiliyor:', {
-      hasMessage: !!inputMessage.trim(),
-      hasContact: !!contact,
-      isOnline,
-      isSending
-    });
     
-    if (!inputMessage.trim() || !contact || !isOnline || isSending) {
-      console.warn('⚠️ Mesaj gönderilemedi - koşullar sağlanmadı');
+    if (!inputMessage.trim() || !contact || isSending) {
+      return;
+    }
+
+    // Grup odası kontrolü
+    const isGroupRoom = contact.isGroup && contact.members;
+    
+    // Grup odası için en az bir üye online olmalı
+    if (isGroupRoom && !isOnline) {
+      alert('Odada çevrimiçi üye yok!');
       return;
     }
 
     setIsSending(true);
     try {
-      console.log('📨 P2P Manager\'a mesaj gönderiliyor...');
-      await p2pManager.sendMessage(contact.peerId, inputMessage.trim());
-      console.log('✅ Mesaj P2P üzerinden gönderildi');
+      const messageText = inputMessage.trim();
+      const chatId = contact.roomCode || contact.peerId;
+      
+      if (isGroupRoom) {
+        // Grup odası - tüm üyelere gönder
+        console.log('📤 Grup mesajı gönderiliyor:', contact.members.length, 'üye');
+        
+        let sentCount = 0;
+        for (const member of contact.members) {
+          // Kendine gönderme
+          if (member.peerId === profile.peerId) continue;
+          
+          try {
+            await p2pManager.sendMessage(member.peerId, messageText);
+            sentCount++;
+            console.log('✅ Mesaj gönderildi:', member.username);
+          } catch (error) {
+            console.warn('⚠️ Mesaj gönderilemedi:', member.username, error.message);
+          }
+        }
+        
+        if (sentCount === 0) {
+          throw new Error('Hiçbir üyeye mesaj gönderilemedi');
+        }
+        
+        console.log(`✅ ${sentCount} üyeye mesaj gönderildi`);
+      } else {
+        // Normal 1-1 chat
+        await p2pManager.sendMessage(contact.peerId, messageText);
+      }
 
+      // Mesajı kaydet
       const newMessage = {
-        peerId: contact.peerId,
-        message: inputMessage.trim(),
+        peerId: chatId,
+        message: messageText,
         timestamp: Date.now(),
-        isSent: true
+        isSent: true,
+        from: profile.username
       };
 
-      console.log('💾 Gönderilen mesaj storage\'a kaydediliyor...');
       await storage.saveMessage(newMessage);
-      console.log('✅ Mesaj storage\'a kaydedildi');
-      
       await loadMessages();
       setInputMessage('');
       
       // Yazıyor durumunu kapat
-      p2pManager.sendTyping(contact.peerId, false);
+      if (isGroupRoom) {
+        contact.members.forEach(member => {
+          if (member.peerId !== profile.peerId) {
+            p2pManager.sendTyping(member.peerId, false);
+          }
+        });
+      } else {
+        p2pManager.sendTyping(contact.peerId, false);
+      }
     } catch (error) {
-      console.error('❌ ChatWindow - Mesaj gönderme hatası:', error);
-      alert('Mesaj gönderilemedi! Hata: ' + error.message);
+      console.error('❌ Mesaj gönderme hatası:', error);
+      alert('Mesaj gönderilemedi! ' + error.message);
     } finally {
       setIsSending(false);
     }
@@ -183,7 +222,11 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
             <h3 className="font-semibold text-white">{contact.name}</h3>
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Radio className="w-3 h-3" />
-              {isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}
+              {contact.isGroup ? (
+                `${contact.members?.length || 0} üye • ${isOnline ? 'Aktif' : 'Çevrimdışı'}`
+              ) : (
+                isOnline ? 'Çevrimiçi' : 'Çevrimdışı'
+              )}
             </p>
           </div>
         </div>
@@ -218,29 +261,39 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
             </div>
           </div>
         ) : (
-          messages.map((msg, index) => (
-            <div
-              key={index}
-              className={`flex ${msg.isSent ? 'justify-end' : 'justify-start'}`}
-            >
+          messages.map((msg, index) => {
+            const isGroupRoom = contact.isGroup;
+            const showSenderName = isGroupRoom && !msg.isSent;
+            
+            return (
               <div
-                className={`max-w-md px-4 py-2.5 rounded-2xl ${
-                  msg.isSent
-                    ? 'bg-blue-600 text-white rounded-br-sm'
-                    : 'bg-gray-800 text-gray-100 rounded-bl-sm'
-                }`}
+                key={index}
+                className={`flex ${msg.isSent ? 'justify-end' : 'justify-start'}`}
               >
-                <p className="text-sm break-words">{msg.message}</p>
-                <p
-                  className={`text-xs mt-1 ${
-                    msg.isSent ? 'text-blue-200' : 'text-gray-500'
+                <div
+                  className={`max-w-md px-4 py-2.5 rounded-2xl ${
+                    msg.isSent
+                      ? 'bg-blue-600 text-white rounded-br-sm'
+                      : 'bg-gray-800 text-gray-100 rounded-bl-sm'
                   }`}
                 >
-                  {formatTime(msg.timestamp)}
-                </p>
+                  {showSenderName && msg.from && (
+                    <p className="text-xs text-purple-400 font-semibold mb-1">
+                      {msg.from}
+                    </p>
+                  )}
+                  <p className="text-sm break-words">{msg.message}</p>
+                  <p
+                    className={`text-xs mt-1 ${
+                      msg.isSent ? 'text-blue-200' : 'text-gray-500'
+                    }`}
+                  >
+                    {formatTime(msg.timestamp)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         
         {isTyping && (
