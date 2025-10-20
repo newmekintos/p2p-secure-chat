@@ -379,6 +379,8 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         onlineContacts={onlineContacts}
         isMobileOpen={isMobileSidebarOpen}
         onMobileClose={() => setIsMobileSidebarOpen(false)}
+        p2pManager={p2pManager}
+        activeRoomCode={activeRoomCode}
       />
 
       <ChatWindow

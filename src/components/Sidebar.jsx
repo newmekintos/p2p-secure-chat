@@ -14,7 +14,9 @@ function Sidebar({
   status,
   onlineContacts,
   isMobileOpen,
-  onMobileClose
+  onMobileClose,
+  p2pManager,
+  activeRoomCode
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -151,12 +153,20 @@ function Sidebar({
             {rooms.map((room) => {
               const isSelected = selectedContact?.roomCode === room.roomCode;
               
-              // Online üye sayısı: Aynı roomCode'a sahip bağlı peer'ler
-              const onlinePeersWithSameRoom = Array.from(onlineContacts).length;
-              const onlineCount = onlinePeersWithSameRoom > 0 ? onlinePeersWithSameRoom : 0;
+              // Gerçek bağlı peer'leri say (sadece bu odadakiler)
+              let connectedPeersInRoom = 0;
+              if (p2pManager && p2pManager.connections) {
+                // Tüm bağlı peer'leri kontrol et, aynı roomCode'a sahip olanları say
+                p2pManager.connections.forEach((conn) => {
+                  if (conn.roomCode === room.roomCode) {
+                    connectedPeersInRoom++;
+                  }
+                });
+              }
               
-              // Toplam üye = kendimiz + online peer'ler
-              const totalMembers = 1 + onlinePeersWithSameRoom;
+              // Toplam üye = kendimiz + bu odadaki bağlı peer'ler
+              const totalMembers = 1 + connectedPeersInRoom;
+              const onlineCount = connectedPeersInRoom;
               
               return (
                 <button
