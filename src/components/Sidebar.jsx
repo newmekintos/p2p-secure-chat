@@ -150,7 +150,13 @@ function Sidebar({
           <div className="space-y-1">
             {rooms.map((room) => {
               const isSelected = selectedContact?.roomCode === room.roomCode;
-              const onlineCount = room.members?.filter(m => onlineContacts.has(m.peerId)).length || 0;
+              
+              // Online üye sayısı: Aynı roomCode'a sahip bağlı peer'ler
+              const onlinePeersWithSameRoom = Array.from(onlineContacts).length;
+              const onlineCount = onlinePeersWithSameRoom > 0 ? onlinePeersWithSameRoom : 0;
+              
+              // Toplam üye = kendimiz + online peer'ler
+              const totalMembers = 1 + onlinePeersWithSameRoom;
               
               return (
                 <button
@@ -179,7 +185,7 @@ function Sidebar({
                       {room.name || `Oda ${room.roomCode}`}
                     </p>
                     <p className="text-xs text-gray-400 truncate">
-                      {room.members?.length || 0} üye • Kod: {room.roomCode}
+                      {totalMembers} üye • Kod: {room.roomCode}
                     </p>
                   </div>
                 </button>

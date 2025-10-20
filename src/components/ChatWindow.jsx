@@ -223,7 +223,7 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
             <p className="text-xs text-gray-400 flex items-center gap-1">
               <Radio className="w-3 h-3" />
               {contact.isGroup ? (
-                `${contact.members?.length || 0} üye • ${isOnline ? 'Aktif' : 'Çevrimdışı'}`
+                `${contact.members?.length || 1} üye • ${contact.members?.length > 1 ? 'Aktif' : 'Sadece Sen'}`
               ) : (
                 isOnline ? 'Çevrimiçi' : 'Çevrimdışı'
               )}
@@ -313,9 +313,14 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
 
       {/* Input */}
       <div className="p-4 bg-gray-800 border-t border-gray-700">
-        {!isOnline && (
+        {!isOnline && !contact.isGroup && (
           <div className="mb-3 px-4 py-2 bg-yellow-900/20 border border-yellow-700/50 rounded-lg text-yellow-400 text-sm text-center">
             Kişi çevrimdışı. Bağlantı kurulması bekleniyor...
+          </div>
+        )}
+        {contact.isGroup && (!contact.members || contact.members.length <= 1) && (
+          <div className="mb-3 px-4 py-2 bg-blue-900/20 border border-blue-700/50 rounded-lg text-blue-400 text-sm text-center">
+            Odada başka üye yok. Oda kodunu paylaşın!
           </div>
         )}
         <form onSubmit={handleSendMessage} className="flex gap-2">
@@ -323,17 +328,30 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
             type="text"
             value={inputMessage}
             onChange={handleTyping}
-            placeholder={isOnline ? "Mesajınızı yazın..." : "Bağlantı bekleniyor..."}
-            disabled={!isOnline || isSending}
+            placeholder={
+              contact.isGroup 
+                ? (contact.members?.length > 1 ? "Grup mesajı yazın..." : "Oda kodunu paylaşın...")
+                : (isOnline ? "Mesajınızı yazın..." : "Bağlantı bekleniyor...")
+            }
+            disabled={isSending || (!isOnline && !contact.isGroup)}
             className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={!inputMessage.trim() || !isOnline || isSending}
-            className="px-4 sm:px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition flex items-center gap-2 font-medium"
+            disabled={!inputMessage.trim() || isSending || (!isOnline && !contact.isGroup)}
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-xl transition flex items-center gap-2 font-medium"
           >
-            <Send className="w-5 h-5" />
-            <span className="hidden sm:inline">{isSending ? 'Gönderiliyor...' : 'Gönder'}</span>
+            {isSending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Gönderiliyor
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4" />
+                Gönder
+              </>
+            )}
           </button>
         </form>
       </div>

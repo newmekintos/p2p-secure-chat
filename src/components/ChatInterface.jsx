@@ -314,27 +314,51 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   };
 
   const handleSelectContact = async (contact) => {
-    setSelectedContact(contact);
-    
-    // Grup odası ise üyelere bağlan, normal kişi ise direkt bağlan
-    if (contact.isGroup && contact.members) {
-      // Tüm grup üyelerine bağlan
-      for (const member of contact.members) {
-        if (member.peerId !== profile.peerId && !p2pManager.isConnectedTo(member.peerId)) {
-          try {
-            await p2pManager.connectToPeer(member.peerId);
-            console.log('✅ Grup üyesine bağlanıldı:', member.username);
-          } catch (error) {
-            console.error('⚠️ Bağlantı hatası:', member.username);
-          }
+    // Grup için dinamik members oluştur
+    if (contact.isGroup) {
+      // Odadaki tüm aktif bağlantıları members olarak ekle
+      const connectedPeers = Array.from(p2pManager.connections.keys());
+      const dynamicMembers = connectedPeers.map(peerId => {
+        const conn = p2pManager.connections.get(peerId);
+        return {
+          peerId: peerId,
+          username: conn.username || 'Unknown',
+          joinedAt: Date.now()
+        };
+      });
+      
+      // Kendimizi de ekle
+      dynamicMembers.push({
+        peerId: profile.peerId,
+        username: profile.username,
+        joinedAt: Date.now()
+      });
+      
+      // Güncellenmiş contact
+      const updatedContact = {
+        ...contact,
+        members: dynamicMembers
+      };
+      
+      setSelectedContact(updatedContact);
+      console.log('📊 Grup üyeleri:', dynamicMembers.length, 'kişi');
+      
+      // Storage'ı da güncelle
+      await storage.saveRoom({
+        ...contact,
+        members: dynamicMembers
+      });
+      await loadRooms();
+    } else {
+      setSelectedContact(contact);
+      
+      // Normal 1-1 chat için bağlan
+      if (contact.peerId && !p2pManager.isConnectedTo(contact.peerId)) {
+        try {
+          await p2pManager.connectToPeer(contact.peerId);
+        } catch (error) {
+          console.error('Connection error:', error);
         }
-      }
-    } else if (contact.peerId && !p2pManager.isConnectedTo(contact.peerId)) {
-      // Normal 1-1 chat
-      try {
-        await p2pManager.connectToPeer(contact.peerId);
-      } catch (error) {
-        console.error('Connection error:', error);
       }
     }
   };
