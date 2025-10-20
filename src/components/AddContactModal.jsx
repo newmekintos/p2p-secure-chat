@@ -50,6 +50,19 @@ function AddContactModal({ onClose, onAdd, myPeerId, onAddAndChat }) {
           // QR kod okundu
           console.log('QR kod tarandı:', decodedText);
           
+          // JSON parse et (yeni format: {peerId, username, roomCode})
+          let qrData = { peerId: decodedText, username: null, roomCode: null };
+          try {
+            const parsed = JSON.parse(decodedText);
+            if (parsed.peerId) {
+              qrData = parsed;
+              console.log('✅ JSON QR parse edildi:', qrData);
+            }
+          } catch (e) {
+            // Eski format (sadece peer ID), sorun değil
+            console.log('📌 Eski format QR (sadece peer ID)');
+          }
+          
           // Scanner'ı durdur
           if (qrScannerRef.current) {
             qrScannerRef.current.stop()
@@ -66,16 +79,23 @@ function AddContactModal({ onClose, onAdd, myPeerId, onAddAndChat }) {
           }
           
           // Geçici isimle kişi ekle - username public key değişiminde güncellenecek
-          const tempName = 'Bağlanıyor...';
+          const tempName = qrData.username || 'Bağlanıyor...';
           const newContact = {
             name: tempName,
-            peerId: decodedText,
+            peerId: qrData.peerId,
             addedAt: Date.now(),
             autoAdded: true,
-            tempName: true // Geçici isim olduğunu işaretle
+            tempName: !qrData.username, // QR'da username varsa geçici değil
+            roomCode: qrData.roomCode // Oda kodu varsa ekle
           };
           
           console.log('🎯 QR ile otomatik ekleniyor:', newContact);
+          
+          // Eğer oda kodu varsa, odaya da katıl!
+          if (qrData.roomCode) {
+            console.log('🚪 QR\'da oda kodu var, odaya katılınıyor:', qrData.roomCode);
+            // onAddAndChat callback'i odaya katılmayı handle edecek
+          }
           
           // Kişiyi ekle ve direkt chat'e git
           if (onAddAndChat) {

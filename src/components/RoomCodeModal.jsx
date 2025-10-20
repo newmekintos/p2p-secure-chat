@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Users, Copy, CheckCircle } from 'lucide-react';
+import { X, Users, Copy, CheckCircle, RefreshCw } from 'lucide-react';
 
 function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
   const [roomCode, setRoomCode] = useState('');
@@ -15,9 +15,20 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
   }, []);
 
   const generateRoomCode = () => {
-    // BASIT ÇÖZÜM: Oda kodu = TAM PEER ID
-    // İkinci kişi direkt bağlanabilir!
-    setMyRoomCode(profile.peerId);
+    // KISA VE PAYLAŞILIR ODA KODU
+    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const numbers = '23456789';
+    
+    const code = 
+      letters[Math.floor(Math.random() * letters.length)] +
+      letters[Math.floor(Math.random() * letters.length)] +
+      letters[Math.floor(Math.random() * letters.length)] +
+      '-' +
+      numbers[Math.floor(Math.random() * numbers.length)] +
+      numbers[Math.floor(Math.random() * numbers.length)] +
+      numbers[Math.floor(Math.random() * numbers.length)];
+    
+    setMyRoomCode(code);
   };
 
   const copyRoomCode = () => {
@@ -36,22 +47,12 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
     setError('');
 
     try {
-      const cleanCode = roomCode.trim(); // lowercase tut - peer ID'ler lowercase
+      const cleanCode = roomCode.trim().toUpperCase();
       
-      console.log('🔗 Oda sahibine bağlanılıyor (Peer ID):', cleanCode);
+      console.log('🚪 Odaya katılınıyor (kod):', cleanCode);
       
-      // Oda kodu = Peer ID, direkt bağlan!
-      try {
-        await p2pManager.connectToPeer(cleanCode);
-        console.log('✅ Oda sahibine bağlanıldı!');
-      } catch (err) {
-        console.error('❌ Bağlantı hatası:', err);
-        setError('Oda sahibine bağlanılamadı. Peer ID geçerli mi?');
-        setIsJoining(false);
-        return;
-      }
-      
-      // Oda kodunu callback ile parent'a gönder
+      // Sadece oda kodunu gönder - handleRoomJoin odayı oluşturacak/bulacak
+      // Peer'lere bağlantı storage'daki creatorPeerId ile olacak
       if (onRoomJoin) {
         await onRoomJoin(cleanCode);
       }
@@ -106,14 +107,23 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
           
           {/* Senin Oda Kodan */}
           <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-4">
-            <div className="mb-3">
-              <h3 className="text-sm font-semibold text-purple-300">🎯 Senin Oda ID'n</h3>
-              <p className="text-xs text-gray-400 mt-1">Bunu paylaş, diğerleri odana katılsın</p>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-purple-300">🎯 Senin Oda Kodan</h3>
+                <p className="text-xs text-gray-400 mt-1">Kodu paylaş - QR daha kolay!</p>
+              </div>
+              <button
+                onClick={generateRoomCode}
+                className="p-1.5 hover:bg-purple-600/20 rounded-lg transition"
+                title="Yeni kod oluştur"
+              >
+                <RefreshCw className="w-4 h-4 text-purple-400" />
+              </button>
             </div>
             
             <div className="flex items-center gap-2">
               <div className="flex-1 bg-gray-900/50 px-3 py-3 rounded-lg">
-                <p className="text-sm font-mono text-center text-white break-all">
+                <p className="text-3xl font-bold text-center text-white tracking-widest">
                   {myRoomCode}
                 </p>
               </div>
@@ -139,13 +149,13 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
 
             <button
               onClick={onShowQR}
-              className="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm"
+              className="mt-2 w-full py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition font-medium text-sm shadow-lg"
             >
-              📱 QR Kod ile Paylaş (Kolay)
+              📱 QR ile Paylaş (Hızlı Katılım!)
             </button>
 
             <p className="mt-2 text-xs text-gray-400 text-center">
-              💡 Bu kodla direkt bağlantı kurulur
+              💡 QR tarat = Hem kişi ekle + Hem odaya katıl!
             </p>
           </div>
 
@@ -159,15 +169,16 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
           {/* Odaya Katıl */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              📥 Oda ID Gir (Peer ID)
+              📥 Oda Kodunu Gir
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.trim())}
-                placeholder="Oda ID'sini yapıştır..."
-                className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                placeholder="ABC-123"
+                maxLength={7}
+                className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-center text-lg font-bold tracking-widest placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
               />
               <button
                 onClick={handleJoinRoom}

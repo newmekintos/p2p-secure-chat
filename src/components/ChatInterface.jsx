@@ -282,15 +282,26 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     setContacts(allContacts);
     setShowAddContact(false);
     
-    // Kişiyi seç (chat'e git)
-    setSelectedContact(contact);
-    
     // Bağlanmayı dene
     try {
       await p2pManager.connectToPeer(contact.peerId);
       console.log('✅ QR ile eklenen kişiye bağlanıldı:', contact.peerId);
     } catch (error) {
       console.log('ℹ️ Bağlantı kurulacak:', error.message);
+    }
+    
+    // Eğer QR'da oda kodu varsa, odaya katıl!
+    if (contact.roomCode) {
+      console.log('🚪 QR\'da oda kodu var, odaya otomatik katılınıyor:', contact.roomCode);
+      await handleRoomJoin(contact.roomCode);
+      // Oda seçilsin
+      const room = await storage.getRoom(contact.roomCode);
+      if (room) {
+        setSelectedContact(room);
+      }
+    } else {
+      // Normal kişi - chat'e git
+      setSelectedContact(contact);
     }
   };
 
@@ -489,6 +500,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
           onClose={() => setShowQRModal(false)}
           peerId={profile.peerId}
           username={profile.username}
+          roomCode={activeRoomCode}
         />
       )}
 

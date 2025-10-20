@@ -2,8 +2,15 @@ import { X, QrCode, Copy, CheckCircle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState } from 'react';
 
-function QRModal({ onClose, peerId, username }) {
+function QRModal({ onClose, peerId, username, roomCode }) {
   const [copied, setCopied] = useState(false);
+
+  // QR koduna hem peer ID hem oda kodu koy
+  const qrData = JSON.stringify({
+    peerId: peerId,
+    username: username,
+    roomCode: roomCode || null
+  });
 
   const copyPeerId = () => {
     navigator.clipboard.writeText(peerId);
@@ -35,7 +42,7 @@ function QRModal({ onClose, peerId, username }) {
           {/* QR Code */}
           <div className="bg-white rounded-2xl p-6 flex items-center justify-center">
             <QRCodeSVG
-              value={peerId}
+              value={qrData}
               size={200}
               level="H"
               includeMargin={true}
@@ -45,11 +52,19 @@ function QRModal({ onClose, peerId, username }) {
           {/* Info */}
           <div className="text-center">
             <p className="text-sm text-gray-400 mb-2">
-              Karşı taraf bu QR kodu taratarak sizi ekleyebilir
+              {roomCode 
+                ? 'QR\'ı taratan odaya direkt katılır!' 
+                : 'Karşı taraf bu QR kodu taratarak sizi ekleyebilir'
+              }
             </p>
             <p className="text-lg font-semibold text-white">
               {username}
             </p>
+            {roomCode && (
+              <p className="text-sm text-purple-400 mt-2">
+                Oda: {roomCode}
+              </p>
+            )}
           </div>
 
           {/* Peer ID */}
