@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Users, Copy, CheckCircle, RefreshCw } from 'lucide-react';
+import { X, Users, Copy, CheckCircle } from 'lucide-react';
 
 function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
   const [roomCode, setRoomCode] = useState('');
@@ -15,21 +15,9 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
   }, []);
 
   const generateRoomCode = () => {
-    // Oda kodu format: ABC-[PeerID ilk 3 karakter]
-    // Böylece oda kodundan oda sahibini bulabiliriz!
-    const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // I, O hariç
-    
-    const prefix = 
-      letters[Math.floor(Math.random() * letters.length)] +
-      letters[Math.floor(Math.random() * letters.length)] +
-      letters[Math.floor(Math.random() * letters.length)];
-    
-    // Peer ID'nin ilk 3 karakterini al (büyük harfe çevir)
-    const peerIdPrefix = profile.peerId.substring(0, 3).toUpperCase();
-    
-    const code = `${prefix}-${peerIdPrefix}`;
-    
-    setMyRoomCode(code);
+    // BASIT ÇÖZÜM: Oda kodu = TAM PEER ID
+    // İkinci kişi direkt bağlanabilir!
+    setMyRoomCode(profile.peerId);
   };
 
   const copyRoomCode = () => {
@@ -40,13 +28,7 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
 
   const handleJoinRoom = async () => {
     if (!roomCode.trim()) {
-      setError('Lütfen oda kodunu girin');
-      return;
-    }
-
-    const cleanCode = roomCode.trim().toUpperCase();
-    if (cleanCode.length !== 7 || cleanCode[3] !== '-') {
-      setError('Geçersiz oda kodu formatı (ABC-123)');
+      setError('Lütfen bir oda kodu girin');
       return;
     }
 
@@ -54,21 +36,34 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
     setError('');
 
     try {
-      // Oda kodunu localStorage'a kaydet
-      localStorage.setItem('activeRoomCode', cleanCode);
-      setActiveRoom(cleanCode);
+      const cleanCode = roomCode.trim(); // lowercase tut - peer ID'ler lowercase
       
-      // Callback'i çağır
+      console.log('🔗 Oda sahibine bağlanılıyor (Peer ID):', cleanCode);
+      
+      // Oda kodu = Peer ID, direkt bağlan!
+      try {
+        await p2pManager.connectToPeer(cleanCode);
+        console.log('✅ Oda sahibine bağlanıldı!');
+      } catch (err) {
+        console.error('❌ Bağlantı hatası:', err);
+        setError('Oda sahibine bağlanılamadı. Peer ID geçerli mi?');
+        setIsJoining(false);
+        return;
+      }
+      
+      // Oda kodunu callback ile parent'a gönder
       if (onRoomJoin) {
-        onRoomJoin(cleanCode);
+        await onRoomJoin(cleanCode);
       }
 
-      // Modal'ı kapat
+      setActiveRoom(cleanCode);
+      
+      // 1 saniye sonra kapat
       setTimeout(() => {
         onClose();
       }, 1000);
     } catch (err) {
-      setError('Odaya katılırken hata oluştu');
+      setError('Odaya katılırken hata oluştu: ' + err.message);
     } finally {
       setIsJoining(false);
     }
@@ -111,20 +106,14 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
           
           {/* Senin Oda Kodan */}
           <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-purple-300">🎯 Senin Oda Kodan</h3>
-              <button
-                onClick={generateRoomCode}
-                className="p-1.5 hover:bg-purple-600/20 rounded-lg transition"
-                title="Yeni kod oluştur"
-              >
-                <RefreshCw className="w-4 h-4 text-purple-400" />
-              </button>
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-purple-300">🎯 Senin Oda ID'n</h3>
+              <p className="text-xs text-gray-400 mt-1">Bunu paylaş, diğerleri odana katılsın</p>
             </div>
             
             <div className="flex items-center gap-2">
-              <div className="flex-1 bg-gray-900/50 px-4 py-3 rounded-lg">
-                <p className="text-3xl font-bold text-center text-white tracking-widest">
+              <div className="flex-1 bg-gray-900/50 px-3 py-3 rounded-lg">
+                <p className="text-sm font-mono text-center text-white break-all">
                   {myRoomCode}
                 </p>
               </div>
@@ -152,11 +141,11 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
               onClick={onShowQR}
               className="mt-2 w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition font-medium text-sm"
             >
-              📱 QR Kod ile Paylaş (Önerilen)
+              📱 QR Kod ile Paylaş (Kolay)
             </button>
 
             <p className="mt-2 text-xs text-gray-400 text-center">
-              ⚠️ Manuel kod paylaşımı sınırlıdır. QR kod kullanın!
+              💡 Bu kodla direkt bağlantı kurulur
             </p>
           </div>
 
@@ -170,16 +159,15 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin, onShowQR }) {
           {/* Odaya Katıl */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              📥 Oda Kodunu Gir
+              📥 Oda ID Gir (Peer ID)
             </label>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                placeholder="ABC-123"
-                maxLength={7}
-                className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-center text-lg font-bold tracking-widest placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase"
+                onChange={(e) => setRoomCode(e.target.value.trim())}
+                placeholder="Oda ID'sini yapıştır..."
+                className="flex-1 px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <button
                 onClick={handleJoinRoom}
