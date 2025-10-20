@@ -237,9 +237,9 @@ function ChatWindow({ p2pManager, contact, profile, isOnline, onDeleteContact, o
             <span className="text-xs text-gray-400">Şifreli</span>
           </div>
           <button
-            onClick={() => onDeleteContact(contact.peerId)}
+            onClick={() => onDeleteContact(contact.roomCode || contact.peerId)}
             className="p-2 hover:bg-gray-700 rounded-lg transition text-gray-400 hover:text-red-400"
-            title="Kişiyi Sil"
+            title={contact.isGroup ? "Odayı Sil" : "Kişiyi Sil"}
           >
             <Trash2 className="w-5 h-5" />
           </button>

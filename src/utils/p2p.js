@@ -118,11 +118,25 @@ export class P2PManager {
       return;
     }
 
-    const conn = this.peer.connect(peerId, {
-      reliable: true
-    });
+    if (!this.peer) {
+      console.error('❌ Peer henüz başlatılmadı');
+      return;
+    }
 
-    this.setupConnection(conn);
+    try {
+      const conn = this.peer.connect(peerId, {
+        reliable: true
+      });
+
+      if (!conn) {
+        console.error('❌ Bağlantı oluşturulamadı:', peerId);
+        return;
+      }
+
+      this.setupConnection(conn);
+    } catch (error) {
+      console.error('❌ connectToPeer hatası:', error);
+    }
   }
 
   // Bağlantıyı yapılandır

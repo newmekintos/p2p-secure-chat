@@ -109,12 +109,34 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       // Aynı odadaysa otomatik üye ekle
       if (peerInfo.isSameRoom && activeRoomCode) {
         console.log('🎯 Aynı odadan peer:', peerInfo.username, '- Otomatik ekleniyor');
+        
+        const room = await storage.getRoom(activeRoomCode);
+        
+        // Üye ekle
         await storage.addRoomMember(activeRoomCode, {
           peerId: peerInfo.peerId,
           username: peerInfo.username,
           joinedAt: Date.now(),
           deviceName: peerInfo.deviceName
         });
+        
+        // Yenilenen odayı al
+        const updatedRoom = await storage.getRoom(activeRoomCode);
+        
+        // Diğer tüm üyelere de bağlan (eğer bağlı değilse)
+        if (updatedRoom && updatedRoom.members) {
+          for (const member of updatedRoom.members) {
+            if (member.peerId !== profile.peerId && !p2pManager.connections.has(member.peerId)) {
+              try {
+                await p2pManager.connectToPeer(member.peerId);
+                console.log('✅ Oda üyesine bağlanıldı:', member.username);
+              } catch (error) {
+                console.warn('⚠️ Bağlantı kurulamadı:', member.username);
+              }
+            }
+          }
+        }
+        
         await loadRooms();
       }
       
@@ -223,14 +245,22 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     }
   };
 
-  const handleDeleteContact = async (peerId) => {
-    if (confirm('Bu kişiyi silmek istediğinizden emin misiniz?')) {
-      await storage.deleteContact(peerId);
-      p2pManager.disconnect(peerId);
-      if (selectedContact?.peerId === peerId) {
+  const handleDeleteContact = async (contactId) => {
+    if (confirm('Silmek istediğinizden emin misiniz?')) {
+      if (selectedContact?.isGroup) {
+        // Grup odası - roomCode'dan sil
+        await storage.deleteRoom(selectedContact.roomCode);
+        await loadRooms();
+      } else {
+        // Normal kişi
+        await storage.deleteContact(contactId);
+        p2pManager.disconnect(contactId);
+        await loadContacts();
+      }
+      
+      if (selectedContact?.peerId === contactId || selectedContact?.roomCode === contactId) {
         setSelectedContact(null);
       }
-      await loadContacts();
     }
   };
 
@@ -257,6 +287,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         isGroup: true
       };
       await storage.saveRoom(room);
+      console.log('✅ Yeni oda oluşturuldu:', roomCode);
     } else {
       // Kendini üye olarak ekle
       await storage.addRoomMember(roomCode, {
@@ -264,6 +295,19 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
         username: profile.username,
         joinedAt: Date.now()
       });
+      
+      // Mevcut tüm üyelere bağlan
+      console.log('🔗 Oda üyelerine bağlanılıyor...');
+      for (const member of room.members) {
+        if (member.peerId !== profile.peerId) {
+          try {
+            await p2pManager.connectToPeer(member.peerId);
+            console.log('✅ Bağlantı kuruldu:', member.username);
+          } catch (error) {
+            console.warn('⚠️ Bağlantı kurulamadı:', member.username, error);
+          }
+        }
+      }
     }
     
     await loadRooms();
@@ -272,8 +316,21 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const handleSelectContact = async (contact) => {
     setSelectedContact(contact);
     
-    // Eğer bağlantı yoksa bağlan
-    if (!p2pManager.isConnectedTo(contact.peerId)) {
+    // Grup odası ise üyelere bağlan, normal kişi ise direkt bağlan
+    if (contact.isGroup && contact.members) {
+      // Tüm grup üyelerine bağlan
+      for (const member of contact.members) {
+        if (member.peerId !== profile.peerId && !p2pManager.isConnectedTo(member.peerId)) {
+          try {
+            await p2pManager.connectToPeer(member.peerId);
+            console.log('✅ Grup üyesine bağlanıldı:', member.username);
+          } catch (error) {
+            console.error('⚠️ Bağlantı hatası:', member.username);
+          }
+        }
+      }
+    } else if (contact.peerId && !p2pManager.isConnectedTo(contact.peerId)) {
+      // Normal 1-1 chat
       try {
         await p2pManager.connectToPeer(contact.peerId);
       } catch (error) {
