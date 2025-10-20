@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'p2p-chat-db';
-const DB_VERSION = 2; // Yakındaki cihazlar için version artırıldı
+const DB_VERSION = 3; // Odalar için version artırıldı
 
 class StorageManager {
   constructor() {
@@ -36,6 +36,12 @@ class StorageManager {
           const devicesStore = db.createObjectStore('nearbyDevices', { keyPath: 'peerId' });
           devicesStore.createIndex('username', 'username', { unique: false });
           devicesStore.createIndex('lastSeen', 'lastSeen', { unique: false });
+        }
+        
+        // Odalar store
+        if (!db.objectStoreNames.contains('rooms')) {
+          const roomsStore = db.createObjectStore('rooms', { keyPath: 'roomCode' });
+          roomsStore.createIndex('createdAt', 'createdAt', { unique: false });
         }
       },
     });
@@ -117,11 +123,43 @@ class StorageManager {
     }
   }
 
+  // Oda işlemleri
+  async saveRoom(room) {
+    await this.db.put('rooms', {
+      ...room,
+      createdAt: room.createdAt || Date.now(),
+      members: room.members || []
+    });
+  }
+
+  async getRoom(roomCode) {
+    return await this.db.get('rooms', roomCode);
+  }
+
+  async getAllRooms() {
+    return await this.db.getAll('rooms');
+  }
+
+  async deleteRoom(roomCode) {
+    await this.db.delete('rooms', roomCode);
+  }
+
+  async addRoomMember(roomCode, member) {
+    const room = await this.getRoom(roomCode);
+    if (room) {
+      if (!room.members.find(m => m.peerId === member.peerId)) {
+        room.members.push(member);
+        await this.saveRoom(room);
+      }
+    }
+  }
+
   // Tüm verileri temizle
   async clearAll() {
     await this.db.clear('messages');
     await this.db.clear('contacts');
     await this.db.clear('nearbyDevices');
+    await this.db.clear('rooms');
     await this.db.clear('profile');
   }
 }

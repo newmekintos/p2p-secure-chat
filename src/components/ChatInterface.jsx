@@ -8,6 +8,7 @@ import RoomCodeModal from './RoomCodeModal';
 
 function ChatInterface({ p2pManager, profile, status, onLogout }) {
   const [contacts, setContacts] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [showAddContact, setShowAddContact] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -34,10 +35,18 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
   useEffect(() => {
     const initConnections = async () => {
       await loadContacts();
+      await loadRooms();
       await loadNearbyDevices();
       
       // Eski cihazları temizle
       await storage.cleanupOldDevices();
+      
+      // Aktif oda varsa yükle
+      const savedRoomCode = localStorage.getItem('activeRoomCode');
+      if (savedRoomCode) {
+        setActiveRoomCode(savedRoomCode);
+        p2pManager.setRoomCode(savedRoomCode);
+      }
       
       // Tüm kayıtlı kişilere otomatik bağlan
       const savedContacts = await storage.getAllContacts();
@@ -122,6 +131,18 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       // Online listesine ekle
       setOnlineContacts(prev => new Set([...prev, peerInfo.peerId]));
       
+      // Aynı odadaysa otomatik üye ekle
+      if (peerInfo.isSameRoom && activeRoomCode) {
+        console.log('🎯 Aynı odadan peer:', peerInfo.username, '- Otomatik ekleniyor');
+        await storage.addRoomMember(activeRoomCode, {
+          peerId: peerInfo.peerId,
+          username: peerInfo.username,
+          joinedAt: Date.now(),
+          deviceName: peerInfo.deviceName
+        });
+        await loadRooms();
+      }
+      
       // Eğer kendi cihazımız değilse, contact olarak da ekle
       if (peerInfo.isOwnDevice) {
         console.log('✅ Kendi cihazın - sadece yakındaki cihazlarda göster');
@@ -202,6 +223,11 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     setContacts(savedContacts);
   };
 
+  const loadRooms = async () => {
+    const savedRooms = await storage.getAllRooms();
+    setRooms(savedRooms);
+  };
+
   const loadNearbyDevices = async () => {
     const devices = await storage.getAllNearbyDevices();
     setNearbyDevices(devices);
@@ -251,13 +277,39 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     }
   };
 
-  const handleRoomJoin = (roomCode) => {
+  const handleRoomJoin = async (roomCode) => {
     console.log('🚪 Odaya katılındı:', roomCode);
     setActiveRoomCode(roomCode);
     p2pManager.setRoomCode(roomCode);
     
     // Oda kodunu localStorage'a kaydet
     localStorage.setItem('activeRoomCode', roomCode);
+    
+    // Odayı storage'a kaydet
+    let room = await storage.getRoom(roomCode);
+    if (!room) {
+      room = {
+        roomCode: roomCode,
+        name: `Oda ${roomCode}`,
+        createdAt: Date.now(),
+        members: [{
+          peerId: profile.peerId,
+          username: profile.username,
+          joinedAt: Date.now()
+        }],
+        isGroup: true
+      };
+      await storage.saveRoom(room);
+    } else {
+      // Kendini üye olarak ekle
+      await storage.addRoomMember(roomCode, {
+        peerId: profile.peerId,
+        username: profile.username,
+        joinedAt: Date.now()
+      });
+    }
+    
+    await loadRooms();
   };
 
   const handleSelectContact = async (contact) => {
@@ -278,6 +330,7 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
       <Sidebar
         profile={profile}
         contacts={contacts}
+        rooms={rooms}
         selectedContact={selectedContact}
         onSelectContact={handleSelectContact}
         onAddContact={() => setShowAddContact(true)}

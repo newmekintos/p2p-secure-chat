@@ -4,6 +4,7 @@ import { useState } from 'react';
 function Sidebar({
   profile,
   contacts,
+  rooms = [],
   selectedContact,
   onSelectContact,
   onAddContact,
@@ -141,9 +142,57 @@ function Sidebar({
       </div>
 
 
+      {/* Grup Odaları */}
+      {rooms.length > 0 && (
+        <div className="px-4 pt-3 pb-2 border-b border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            👥 Grup Odaları
+          </h3>
+          <div className="space-y-1">
+            {rooms.map((room) => {
+              const isSelected = selectedContact?.roomCode === room.roomCode;
+              const onlineCount = room.members?.filter(m => onlineContacts.has(m.peerId)).length || 0;
+              
+              return (
+                <button
+                  key={room.roomCode}
+                  onClick={() => onSelectContact(room)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition ${
+                    isSelected 
+                      ? 'bg-purple-600/20 border border-purple-500/50' 
+                      : 'hover:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="relative">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      isSelected ? 'bg-purple-500' : 'bg-purple-700'
+                    }`}>
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    {onlineCount > 0 && (
+                      <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-green-500 border-2 border-gray-800 rounded-full flex items-center justify-center">
+                        <span className="text-xs font-bold text-white">{onlineCount}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-white truncate">
+                      {room.name || `Oda ${room.roomCode}`}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">
+                      {room.members?.length || 0} üye • Kod: {room.roomCode}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Kişiler Listesi */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {contacts.length === 0 ? (
+        {contacts.length === 0 && rooms.length === 0 ? (
           <div className="p-8 text-center">
             <div className="w-16 h-16 bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-3">
               <User className="w-8 h-8 text-gray-500" />
