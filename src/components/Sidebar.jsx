@@ -120,8 +120,8 @@ function Sidebar({
         </div>
       </div>
 
-      {/* Kişi Ekleme Butonu */}
-      <div className="p-4 border-b border-gray-700">
+      {/* Kişi Ekle Butonu */}
+      <div className="p-4 border-b border-gray-700 space-y-2">
         <button
           onClick={onAddContact}
           className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium"
@@ -129,6 +129,22 @@ function Sidebar({
           <UserPlus className="w-5 h-5" />
           Kişi Ekle
         </button>
+        
+        <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
+          <div className="text-yellow-400 text-2xl">💡</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-yellow-300">Yakındaki Cihazları Bul</p>
+            <p className="text-xs text-yellow-400/70 mt-0.5">
+              QR kodu göster veya tarat
+            </p>
+          </div>
+          <button
+            onClick={onShowQR}
+            className="p-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg transition"
+          >
+            <QrCode className="w-4 h-4 text-white" />
+          </button>
+        </div>
       </div>
 
       {/* Yakındaki Aktif Cihazlar */}
