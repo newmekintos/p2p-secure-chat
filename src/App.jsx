@@ -16,6 +16,8 @@ function App() {
       await storage.init();
       // Çıkış yapıldıktan sonra yeni giriş için profili temizle
       await storage.clearAll();
+      // Eski oda kodunu da temizle
+      localStorage.removeItem('activeRoomCode');
     };
     initStorage();
 
@@ -45,6 +47,10 @@ function App() {
   };
 
   const handleLogout = async () => {
+    // Oda kodunu temizle
+    localStorage.removeItem('activeRoomCode');
+    p2pManager.clearRoomCode();
+    
     p2pManager.destroy();
     await storage.clearAll();
     setProfile(null);

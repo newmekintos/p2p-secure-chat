@@ -157,12 +157,16 @@ function Sidebar({
               let connectedPeersInRoom = 0;
               if (p2pManager && p2pManager.connections) {
                 // Tüm bağlı peer'leri kontrol et, aynı roomCode'a sahip olanları say
-                p2pManager.connections.forEach((conn) => {
-                  if (conn.roomCode === room.roomCode) {
+                p2pManager.connections.forEach((conn, peerId) => {
+                  console.log(`🔍 Peer ${peerId}: roomCode="${conn.roomCode}", aranan="${room.roomCode}"`);
+                  if (conn.roomCode && conn.roomCode === room.roomCode) {
                     connectedPeersInRoom++;
+                    console.log(`✅ Eşleşti! Toplam: ${connectedPeersInRoom}`);
                   }
                 });
               }
+              
+              console.log(`📊 Oda ${room.roomCode}: ${connectedPeersInRoom} bağlı peer`);
               
               // Toplam üye = kendimiz + bu odadaki bağlı peer'ler
               const totalMembers = 1 + connectedPeersInRoom;

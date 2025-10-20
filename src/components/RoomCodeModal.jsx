@@ -75,17 +75,15 @@ function RoomCodeModal({ onClose, profile, p2pManager, onRoomJoin }) {
 
   const handleCreateRoom = () => {
     const cleanCode = myRoomCode.toUpperCase();
-    localStorage.setItem('activeRoomCode', cleanCode);
-    setActiveRoom(cleanCode);
     
     if (onRoomJoin) {
       onRoomJoin(cleanCode);
     }
 
-    // 2 saniye sonra kapat
+    // 1 saniye sonra kapat
     setTimeout(() => {
       onClose();
-    }, 2000);
+    }, 1000);
   };
 
   return (
