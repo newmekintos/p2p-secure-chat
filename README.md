@@ -6,11 +6,14 @@ Tamamen frontend tabanlı, merkezi olmayan, sansürlenemez ve uçtan uca şifrel
 
 - **🔐 Uçtan Uca Şifreleme**: RSA-4096 + SHA-512 ile askeri düzeyde güvenlik
 - **🌐 P2P (Peer-to-Peer)**: Doğrudan cihazlar arası bağlantı, sunucu yok
+- **🔍 Otomatik Discovery**: Yakındaki aktif cihazları otomatik keşfet
+- **📱💻 Çoklu Cihaz**: Laptop, telefon, tablet - hepsi senkron
 - **🚫 Sansürlenemez**: Hiçbir merkezi otorite mesajları engelleyemez
 - **👻 Anonim**: Kayıt, veritabanı veya kullanıcı takibi yok
 - **💾 Yerel Depolama**: Tüm veriler IndexedDB ile yerel olarak saklanır
 - **⚡ Gerçek Zamanlı**: WebRTC ile anlık mesajlaşma
 - **🎨 Modern UI**: React + TailwindCSS ile güzel arayüz
+- **📲 QR Kod**: Hızlı kişi ekleme ve paylaşım
 
 ## 🚀 Kurulum
 

@@ -131,12 +131,17 @@ function Sidebar({
         </button>
       </div>
 
-      {/* Yakındaki Cihazlarım */}
+      {/* Yakındaki Aktif Cihazlar */}
       {nearbyDevices.length > 0 && (
         <div className="px-4 pt-3 pb-2 border-b border-gray-700">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            Yakındaki Cihazlarım
-          </h3>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+              🔍 Yakındaki Aktif Cihazlar
+            </h3>
+            <span className="text-xs text-green-500 font-medium">
+              {nearbyDevices.length} Aktif
+            </span>
+          </div>
           <div className="space-y-1">
             {nearbyDevices.map((device) => {
               const isOnline = onlineContacts.has(device.peerId);
@@ -148,7 +153,11 @@ function Sidebar({
                   className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-700/50 transition"
                 >
                   <div className="relative">
-                    <div className="w-9 h-9 bg-purple-600/20 rounded-lg flex items-center justify-center">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                      device.isOwnDevice 
+                        ? 'bg-purple-600/20 border border-purple-500/30' 
+                        : 'bg-blue-600/20 border border-blue-500/30'
+                    }`}>
                       <span className="text-lg">{device.deviceInfo?.icon || '🖥️'}</span>
                     </div>
                     {isOnline && (
@@ -156,11 +165,18 @@ function Sidebar({
                     )}
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium text-white truncate">
-                      {device.deviceName}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-white truncate">
+                        {device.deviceName}
+                      </p>
+                      {device.isOwnDevice && (
+                        <span className="text-xs px-1.5 py-0.5 bg-purple-600/30 text-purple-300 rounded">
+                          Sen
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 truncate">
-                      {device.deviceInfo?.os || 'Bilinmeyen'}
+                      {device.username} • {device.deviceInfo?.os || 'Bilinmeyen'}
                     </p>
                   </div>
                 </button>

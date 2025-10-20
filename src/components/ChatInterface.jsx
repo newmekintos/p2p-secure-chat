@@ -49,13 +49,21 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
 
     initConnections();
     
-    // Her 2 dakikada bir yakındaki cihazları yenile ve eski olanları temizle
+    // Her 30 saniyede bir yakındaki cihazları yenile
+    const refreshInterval = setInterval(async () => {
+      await loadNearbyDevices();
+      console.log('🔄 Yakındaki cihazlar yenilendi');
+    }, 30 * 1000);
+    
+    // Her 2 dakikada bir eski cihazları temizle
     const cleanupInterval = setInterval(async () => {
       await storage.cleanupOldDevices();
       await loadNearbyDevices();
+      console.log('🧹 Eski cihazlar temizlendi');
     }, 2 * 60 * 1000);
     
     return () => {
+      clearInterval(refreshInterval);
       clearInterval(cleanupInterval);
     };
 
@@ -95,21 +103,25 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     p2pManager.onIncomingPeerCallback = async (peerInfo) => {
       console.log('Yeni peer bağlandı:', peerInfo);
       
-      // Eğer kendi cihazımızsa (aynı kullanıcı adı), yakındaki cihazlara ekle
+      // Tüm aktif cihazları "yakındaki cihazlar"a ekle (kullanıcı adına bakmaksızın)
+      console.log('🔍 Yakındaki aktif cihaz tespit edildi:', peerInfo.deviceName || peerInfo.username);
+      const deviceData = {
+        peerId: peerInfo.peerId,
+        username: peerInfo.username,
+        deviceName: peerInfo.deviceName || `${peerInfo.username} - Cihaz`,
+        deviceInfo: peerInfo.deviceInfo,
+        lastSeen: Date.now(),
+        isOwnDevice: peerInfo.isOwnDevice // Kendi cihazımız mı işaretle
+      };
+      await storage.saveNearbyDevice(deviceData);
+      await loadNearbyDevices();
+      
+      // Online listesine ekle
+      setOnlineContacts(prev => new Set([...prev, peerInfo.peerId]));
+      
+      // Eğer kendi cihazımız değilse, contact olarak da ekle
       if (peerInfo.isOwnDevice) {
-        console.log('🖥️ Kendi cihazın tespit edildi:', peerInfo.deviceName);
-        const deviceData = {
-          peerId: peerInfo.peerId,
-          username: peerInfo.username,
-          deviceName: peerInfo.deviceName || 'Bilinmeyen Cihaz',
-          deviceInfo: peerInfo.deviceInfo,
-          lastSeen: Date.now()
-        };
-        await storage.saveNearbyDevice(deviceData);
-        await loadNearbyDevices();
-        
-        // Online listesine ekle
-        setOnlineContacts(prev => new Set([...prev, peerInfo.peerId]));
+        console.log('✅ Kendi cihazın - sadece yakındaki cihazlarda göster');
         return; // Kendi cihazlarımızı contact olarak ekleme
       }
       
@@ -145,10 +157,17 @@ function ChatInterface({ p2pManager, profile, status, onLogout }) {
     };
 
     // Bağlantı event'lerini dinle
-    p2pManager.onConnection((data) => {
+    p2pManager.onConnection(async (data) => {
       if (data.connected) {
         console.log('Peer connected:', data.peerId);
         setOnlineContacts(prev => new Set([...prev, data.peerId]));
+        
+        // Yakındaki cihazlardaki lastSeen'i güncelle
+        const device = await storage.getNearbyDevice(data.peerId);
+        if (device) {
+          await storage.saveNearbyDevice(device); // lastSeen otomatik güncellenir
+          await loadNearbyDevices();
+        }
       }
     });
 
