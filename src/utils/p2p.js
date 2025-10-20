@@ -46,7 +46,7 @@ export class P2PManager {
             { urls: 'stun:stun2.l.google.com:19302' }
           ]
         },
-        debug: 2 // Debug için log seviyesi
+        debug: 0 // Debug kapalı - console temiz
       };
 
       this.peer = userId ? new Peer(userId, config) : new Peer(config);
@@ -60,7 +60,7 @@ export class P2PManager {
         this.peer.on('open', (id) => {
           clearTimeout(timeout);
           this.peerId = id;
-          console.log('Peer ID:', id);
+          console.log('✅ Bağlandı:', id);
           this.onStatusCallback?.('connected', id);
           resolve(id);
         });
@@ -73,12 +73,12 @@ export class P2PManager {
           clearTimeout(timeout);
           // Yaygın hataları daha soft göster
           if (err.type === 'peer-unavailable') {
-            console.log('ℹ️ Peer şu anda mevcut değil:', err.message);
+            // Sessizce handle et
           } else if (err.type === 'network' || err.type === 'server-error') {
-            console.warn('⚠️ Bağlantı hatası (otomatik yeniden bağlanılacak):', err.message);
+            // Otomatik reconnect olacak
             this.onStatusCallback?.('reconnecting');
           } else {
-            console.error('❌ Peer error:', err);
+            console.log('⚠️ Bağlantı sorunu (düzeliyor...)');
             this.onStatusCallback?.('error', err.message);
           }
           
@@ -89,7 +89,7 @@ export class P2PManager {
         });
 
         this.peer.on('disconnected', () => {
-          console.log('Peer disconnected from server, attempting reconnection...');
+          // Sessizce reconnect
           this.onStatusCallback?.('reconnecting');
           
           // 2 saniye sonra yeniden bağlan
@@ -101,7 +101,7 @@ export class P2PManager {
         });
 
         this.peer.on('close', () => {
-          console.log('Peer connection closed');
+          // Sessizce handle et
           this.onStatusCallback?.('disconnected');
         });
       });
@@ -128,7 +128,7 @@ export class P2PManager {
   // Bağlantıyı yapılandır
   setupConnection(conn) {
     conn.on('open', async () => {
-      console.log('Connection opened with', conn.peer);
+      // Sessizce bağlan
       this.connections.set(conn.peer, conn);
 
       // Public key'i, cihaz bilgisini ve oda kodunu paylaş
@@ -143,7 +143,6 @@ export class P2PManager {
         roomCode: this.roomCode
       });
       conn.sentPublicKey = true; // Public key gönderildi işaretle
-      console.log('Public key gönderildi:', conn.peer);
 
       this.onConnectionCallback?.({
         peerId: conn.peer,
@@ -157,13 +156,13 @@ export class P2PManager {
     });
 
     conn.on('close', () => {
-      console.log('Connection closed with', conn.peer);
+      // Sessizce handle et
       this.connections.delete(conn.peer);
       this.onDisconnectionCallback?.(conn.peer);
     });
 
     conn.on('error', (err) => {
-      console.error('Connection error:', err);
+      // Sessizce handle et
     });
   }
 
@@ -182,16 +181,7 @@ export class P2PManager {
           conn.deviceName = data.deviceName;
           conn.roomCode = data.roomCode;
           
-          // Oda kodu kontrolü
-          if (this.roomCode && data.roomCode) {
-            if (this.roomCode === data.roomCode) {
-              console.log('🎯 Aynı odadaki peer bulundu:', peerId, '(Oda:', this.roomCode, ')');
-            } else {
-              console.log('⚠️ Farklı odadan peer:', peerId, '(Onun odası:', data.roomCode, ')');
-            }
-          }
-          
-          console.log('Public key alındı:', peerId, '✅', data.deviceName || '');
+          // Oda kodu kontrolü - sessizce yap
           
           // Eğer biz de henüz public key göndermediyse, gönder
           if (!conn.sentPublicKey) {
@@ -206,7 +196,6 @@ export class P2PManager {
               roomCode: this.roomCode
             });
             conn.sentPublicKey = true;
-            console.log('Public key gönderildi:', peerId);
           }
         }
         
