@@ -1,4 +1,4 @@
-import { User, UserPlus, LogOut, Copy, CheckCircle, Radio, QrCode } from 'lucide-react';
+import { User, Users, UserPlus, LogOut, Copy, CheckCircle, Radio, QrCode } from 'lucide-react';
 import { useState } from 'react';
 
 function Sidebar({
